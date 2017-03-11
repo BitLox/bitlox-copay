@@ -2914,7 +2914,7 @@ msgid "to send"
 msgstr ""
 
 #: www/views/preferencesBwsUrl.html:21
-msgid "{{appName}} depends on Bitcore Wallet Service (BWS) for blockchain information, networking and Copayer synchronization. The default configuration points to https://bws.aureus.cc (BitPay's public BWS instance)."
+msgid "{{appName}} depends on Bitcore Wallet Service (BWS) for blockchain information, networking and Copayer synchronization. The default configuration points to https://bws.bitlox.com (BitPay's public BWS instance)."
 msgstr ""
 
 #: www/views/includes/confirm-tx.html:23
