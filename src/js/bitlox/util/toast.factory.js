@@ -5,64 +5,42 @@
         .config(ToastConfig)
         .factory('Toast', ToastFactory);
 
-    ToastConfig.$inject = ['ngToastProvider'];
 
-    function ToastConfig(ngToast) {
-        ngToast.configure({
-            verticalPosition: 'bottom',
-            horizontalPosition: 'center',
-            animation: 'fade'
-        });
+    function ToastConfig() {
+
     }
 
-    ToastFactory.$inject = ['ngToast'];
 
-    function ToastFactory(ngToast) {
+    function ToastFactory() {
 
         var Toast = function(){};
 
         var show = Toast.prototype.show = function(params) {
-            ngToast.create(params);
+            console.log("BITLOX",params);
         };
 
         Toast.prototype.clear = function(toast) {
-            ngToast.dismiss(toast);
+
         };
 
         Toast.prototype.info = function(message) {
-            this.show({
-                content: message,
-                className: 'info'
-            });
+            console.info("BITLOX",message)
         };
 
         Toast.prototype.error = function(message) {
-            this.show({
-                content: message,
-                className: 'danger'
-            });
+            console.error("BITLOX",message)
         };
 
         Toast.prototype.errorHandler = function(err) {
-            // this function is unbound, do not use 'this'
-            show({
-                content: err.message || err,
-                className: 'danger'
-            });
+            console.error("BITLOX",err)
         };
 
         Toast.prototype.success = function(message) {
-            this.show({
-                content: message,
-                className: 'success'
-            });
+            console.info("BITLOX",message)
         };
 
         Toast.prototype.warning = function(message) {
-            this.show({
-                content: message,
-                className: 'warning'
-            });
+            console.warn("BITLOX",message)
         };
 
         return new Toast();

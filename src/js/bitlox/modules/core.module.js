@@ -2,7 +2,7 @@
 (function(window, angular) {
     'use strict';
 
-    angular.module('app.util', ['ngToast', 'ipCookie']);
+    angular.module('app.util', []);
 
 })(window, window.angular);
 
