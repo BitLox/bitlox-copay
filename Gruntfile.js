@@ -87,7 +87,8 @@ module.exports = function(grunt) {
           'src/js/routes.js',
           'src/js/services/*.js',
           'src/js/models/*.js',
-          'src/js/controllers/**/*.js'
+          'src/js/controllers/**/*.js',
+          'src/js/bitlox/**/*.js'
         ],
         tasks: ['concat:js']
       }
@@ -134,6 +135,15 @@ module.exports = function(grunt) {
       },
       js: {
         src: [
+          'bower_components/bytebuffer/dist/bytebuffer.min.js',
+          'bower_components/protobuf/dist/protobuf.min.js',
+          'lib/bitcoinjs-lib.js',
+          'src/js/bitlox/modules/*.js',
+          'src/js/bitlox/util/*.js',
+          'src/js/bitlox/hid/*.js',
+          'src/js/bitlox/bitcoin/*.js',
+          'src/js/bitlox/wallet/**/*.js',
+          'src/js/bitlox/controllers/*.js',          
           'src/js/app.js',
           'src/js/routes.js',
           'src/js/directives/*.js',
