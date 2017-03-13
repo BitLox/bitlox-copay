@@ -1,6 +1,12 @@
 (function(window, angular, chrome, async, ProtoBuf, ByteBuffer) {
     'use strict';
 
+
+    // for now just rig it so it does not load this if we are in the chrome app
+    if(!chrome || !chrome.hid) {
+      return false;
+    }
+
     angular.module('hid')
         .service('hidapi', HidAPI);
 
@@ -42,7 +48,7 @@
 
         this.$scope = $rootScope.$new();
         this.$scope.status = HidAPI.STATUS_DISCONNECTED;
-		
+
         var hidapi = this;
         // monitor disconnect
         chrome.hid.onDeviceRemoved.addListener(function() {
@@ -262,15 +268,15 @@
             if (magicRegexpEdge.test(serialData)) {
                 return hidapi.read(serialData, wait);
             }
-            
+
 // 			bonehead forgot to put in the edge split case
 			if (((serialData[60] !== 2) || (serialData[61] !== 3)) && ((serialData[62] === 2) && (serialData[63] === 3))) {
 				//                     console.log('EDGE:' + sD);
 				serialData = serialData + hidapi.read(serialData, wait);
 				//                     console.log('EDGE WRAP:' + sD);
 			}
-            
-            
+
+
             if (magicRegexp.test(serialData)) {
                 // find the position of the magic string
                 var headerPosition = serialData.search(magic);
@@ -295,7 +301,7 @@
                 {
                 	decPayloadSize = 0 ;
 //                 	console.debug("decPayloadSize set to 0: ", decPayloadSize);
-                }                
+                }
                 // if the content length is longer than the rest of the
                 // data, go get some more
                 if ((headerPosition + 16 + (2 * decPayloadSize)) > serialData.length) {
@@ -450,7 +456,7 @@
 								});
 							}
 							return hidapi.$timeout(doRead, readTimeout);
-						} else {	
+						} else {
 							hidapi.doingCommand = false;
 							return hidapi.$q.reject(data.payload);
 						}
@@ -695,7 +701,7 @@
         });
     };
 
-    HidAPI.prototype.setChangeAddress = function(chainIndex) {   
+    HidAPI.prototype.setChangeAddress = function(chainIndex) {
 //     	console.debug("in hidapi setChangeAddress");
         var Device = this.protoBuilder();
         var otpMessage = new Device.SetChangeAddressIndex({

@@ -9,10 +9,11 @@
     function WalletCtrl($timeout, MAX_WALLETS, Wallet, Toast, hidapi) {
         var vm = this;
 
-        chrome.hid.onDeviceAdded.addListener(function() {
-            vm.readWallets();
-        });
-
+        if(chrome.hid) {
+          chrome.hid.onDeviceAdded.addListener(function() {
+              vm.readWallets();
+          });
+        }
         vm.readWallets = function() {
             vm.readingWallets = true;
             return Wallet.list()
@@ -113,9 +114,7 @@
             vm.openWallet = null;
             // read after a timeout, so angular does not hang and show
             // garbage while the browser is locked form readin the device
-            // $timeout(vm.readWallets.bind(vm));
-            console.debug('FOO');
-            vm.readWallets();
+            $timeout(vm.readWallets.bind(vm), 100);
         }
 
     }
