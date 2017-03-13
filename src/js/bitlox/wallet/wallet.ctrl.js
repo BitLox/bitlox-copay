@@ -9,7 +9,7 @@
     function WalletCtrl($timeout, MAX_WALLETS, Wallet, Toast, hidapi) {
         var vm = this;
 
-        if(chrome.hid) {
+        if(chrome && chrome.hid) {
           chrome.hid.onDeviceAdded.addListener(function() {
               vm.readWallets();
           });
