@@ -26,26 +26,18 @@
 
       <ion-list ng-show="!vm.readingWallets">
 
-        <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="showCreate=true;">
+        <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ui-sref="tabs.add.create-bitlox-wallet({availableWallets:vm.availableWalletNumbers})">
          <i class="icon big-icon-svg">
             <img src="img/icon-wallet.svg" class="bg"/>
           </i>
           <span class="add-type" translate>Create/Restore Wallet</span>
           <i class="icon bp-arrow-right"></i>
-<!-- 
-          <wallet-create available-numbers="vm.availableWalletNumbers"
-                         on-finish="showCreate=false;vm.readWallets()"></wallet-create> -->
 
         </a>
         <a ng-repeat="wallet in vm.wallets"
               ng-click="vm.loadWallet(wallet)"
               ng-disabled="vm.openWallet.number == wallet.number"
-              class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left"
-              ng-class="{
-                        'list-group-item-default': vm.openWallet.number != wallet.number,
-                        'list-group-item-warning': vm.openingWallet == wallet.number,
-                        'list-group-item-success': vm.openWallet.number == wallet.number,
-                        }">
+              class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left">
           #{{wallet.number}}&nbsp;&nbsp;
           <span class="glyphicon glyphicon-lock"
                 ng-if="wallet.isSecure">&nbsp;</span>{{wallet.name}}

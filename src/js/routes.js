@@ -340,7 +340,21 @@ angular.module('copayApp').config(function(historicLogProvider, $provide, $logPr
         url: '/attach-bitlox',
         views: {
           'tab-home@tabs': {
-            templateUrl: 'views/tab-attach-bitlox.html'
+            templateUrl: 'views/bitlox/tab-attach-bitlox.html',
+
+          },
+        }
+      })
+      .state('tabs.add.create-bitlox-wallet', {
+        url: '/attach-bitlox',
+        params: {
+          availableNumbers: {
+            array: true
+          }
+        },        
+        views: {
+          'tab-home@tabs': {
+            templateUrl: 'views/bitlox/tab-create-bitlox-wallet.html'
           },
         }
       })

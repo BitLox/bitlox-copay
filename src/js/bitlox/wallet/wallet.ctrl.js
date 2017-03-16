@@ -4,10 +4,45 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidapi'];
+    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidapi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper'];
 
-    function WalletCtrl($timeout, MAX_WALLETS, Wallet, Toast, hidapi) {
+    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper) {
+      console.log(derivationPathHelper)
         var vm = this;
+
+        // dave says this comes from the import.js file by copay, with edits
+        var _importExtendedPublicKey = function(wallet) {
+          var opts = {};
+          opts.externalSource = 'bitlox';
+          opts.extendedPublicKey = wallet.xpub;
+          opts.derivationPath = "m/0'/0";
+          opts.derivationStrategy = 'BIP32'
+          opts.hasPassphrase = false;
+          opts.name = wallet.name;
+          opts.account = 1
+          opts.type = 2
+          opts.networkName = 'livenet'
+          opts.network = true
+          opts.bwsurl = 'https://bws.bitpay.com/bws/api'
+          ongoingProcess.set('importingWallet', true);
+          $timeout(function() {
+            profileService.importExtendedPublicKey(opts, function(err, walletId) {
+              ongoingProcess.set('importingWallet', false);
+              if (err) {
+                console.error(err)
+                popupService.showAlert(gettextCatalog.getString('Error'), err);
+                return;
+              }
+
+
+              walletService.updateRemotePreferences(wallet);
+              profileService.setBackupFlag(wallet.credentials.walletId);
+              $ionicHistory.removeBackView();
+              $state.go('tabs.home');
+
+            });
+          }, 100);
+        };
 
         if(chrome && chrome.hid) {
           chrome.hid.onDeviceAdded.addListener(function() {
@@ -30,20 +65,23 @@
         vm.loadWallet = function(wallet) {
             vm.openWallet = null;
             vm.loadingXpub = true;
-            console.debug("loading wallet", wallet.number);
+            // console.debug("loading wallet", wallet.number);
             vm.openingWallet = wallet.number;
             wallet.open()
                 .then(function() {
                     vm.openWallet = wallet;
                 }, Toast.errorHandler, function(status) {
-                    console.debug("open notify", status);
-                    if (status === Wallet.NOTIFY_XPUB_LOADED) {
-                        vm.loadingXpub = false;
-                    }
+                    // console.debug("open notify", status);
+                    // dave says, I think this is not needed any more
+                    // if (status === Wallet.NOTIFY_XPUB_LOADED) {
+                    //     vm.loadingXpub = false;
+                    // }
                 })
                 .finally(function() {
                     console.debug("done loading wallet", wallet.number);
-                    vm.openingWallet = -99;
+                    vm.openingWallet = null; // changed from -99 because I think it's fucking things up
+                    console.log("WALLET LOADED", wallet.xpub)
+                    _importExtendedPublicKey(wallet.xpub)
                 });
         };
 

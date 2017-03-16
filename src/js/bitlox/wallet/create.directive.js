@@ -4,15 +4,13 @@
     angular.module('app.wallet')
         .directive('walletCreate', walletCreate);
 
-    walletCreate.$inject = ['Wallet', 'Toast', 'BIP39WordList'];
+    walletCreate.$inject = ['Wallet', 'Toast', 'BIP39WordList', '$stateParams'];
 
-    function walletCreate(Wallet, Toast, wordlist) {
+    function walletCreate(Wallet, Toast, wordlist, $stateParams) {
         return {
             scope: {
-                availableNumbers: '=',
-                onFinish: '&',
             },
-            templateUrl: 'views/bitlox/create.html',
+            templateUrl: 'views/bitlox/directive-create-bitlox-wallet.html',
             link: function(scope) {
 
                 reset();
@@ -27,6 +25,8 @@
                     });
                 };
 
+
+
                 // wallets is on the parent scope, which this inherits
                 scope.$watchCollection('availableNumbers', function(available) {
                     if (available && available.length) {
@@ -35,6 +35,8 @@
                         scope.newWallet.number = available[0];
                     }
                 });
+                scope.availableNumbers = $stateParams.availableNumbers;
+                console.log(scope.availableNumbers)
 
                 scope.updateWordNumbers = function() {
                     if (!scope.userWords) {

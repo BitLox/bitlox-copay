@@ -89,7 +89,7 @@
                 wallet.bip32 = bip32;
                 // now that we have addresses, update the balance for
                 // the wallet
-                return wallet.updateBalance();
+                // return wallet.updateBalance(); dave says we don't need this anymore
             });
         };
 
@@ -262,7 +262,7 @@
 
         Wallet.prototype.open = function() {
             var wallet = this;
-            WalletStatus.status = WalletStatus.STATUS_LOADING;
+            // WalletStatus.status = WalletStatus.STATUS_LOADING;
             var deferred = $q.defer();
             hidapi.loadWallet(this.number).then(function(data) {
                 if (data.type !== hidapi.TYPE_SUCCESS) {
@@ -274,7 +274,7 @@
                 // now that is is open, get the bip32 key for the
                 // current wallet
                 return Wallet.getBip32(wallet).then(function() {
-                    wallet.loadTransactions();
+                    // wallet.loadTransactions(); // dave says, we don't need this anymore
                     return deferred.resolve(wallet);
                 }, deferred.reject);
             }, deferred.reject);
