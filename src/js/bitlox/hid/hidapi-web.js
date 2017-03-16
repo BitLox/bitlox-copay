@@ -3,6 +3,7 @@
 
     // for now just do not load if we are in chrome app
     if(chrome && chrome.hid) {
+      console.log('not loading web hid')
       return false;
     }
 

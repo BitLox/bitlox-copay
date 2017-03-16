@@ -18,8 +18,7 @@
         "usbDevices": [
             { "vendorId": 1003, "productId": 8271 }
         ]
-    },
-    "storage"
+    }
   ],
   "app": {
     "background": {
