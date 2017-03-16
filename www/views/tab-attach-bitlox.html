@@ -1,0 +1,77 @@
+<ion-view id="view-attach-bitlox">
+  <ion-nav-bar class="bar-royal">
+    <ion-nav-title>Attach a BitLox</ion-nav-title>
+    <ion-nav-back-button>
+    </ion-nav-back-button>
+  </ion-nav-bar>
+
+  <ion-content  ng-controller="StatusCtrl as sc">
+    <div class=""  ng-controller="HomeCtrl as vm">
+        <h3>Device {{vm.uuid.payload.device_uuid + ""}}</h3>
+        <pre>{{vm.uuid.payload | json}}</pre>
+        <button class="btn btn-default"
+                ng-disabled="vm.openingDevice"
+                ng-click="vm.checkDevice()">Connect</button>
+    </div>
+    <div ng-hide="sc.bitlox.connected || !sc.bitlox.connectAttempted">
+        <h2>
+            No BitLox device detected.
+            <br>
+            Please connect your BitLox and
+            <a href ng-click="sc.refreshBitlox()">click or tap here to try again.</a>
+        </h2>
+    </div>
+    <div ng-show="sc.wallet.status">
+        <span class="glyphicon"
+              ng-class="sc.wallet.glyph"></span>
+        {{sc.wallet.status}}
+    </div>
+
+
+    <div  ng-controller="WalletCtrl as vm"
+      ng-show="sc.bitlox.connected">
+      <h3 ng-show="vm.readingWallets">Loading wallets</h3>
+
+      <ion-list ng-show="!vm.readingWallets">
+
+        <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="showCreate=true;">
+         <i class="icon big-icon-svg">
+            <img src="img/icon-wallet.svg" class="bg"/>
+          </i>
+          <span class="add-type" translate>Create/Restore Wallet</span>
+          <i class="icon bp-arrow-right"></i>
+
+          <wallet-create ng-show="showCreate" available-numbers="vm.availableWalletNumbers"
+                         on-finish="showCreate=false;vm.readWallets()"></wallet-create>
+
+        </a>
+        <a ng-repeat="wallet in vm.wallets"
+              ng-click="vm.loadWallet(wallet)"
+              ng-disabled="vm.openWallet.number == wallet.number"
+              ng-class="{
+                        'list-group-item-default': vm.openWallet.number != wallet.number,
+                        'list-group-item-warning': vm.openingWallet == wallet.number,
+                        'list-group-item-success': vm.openWallet.number == wallet.number,
+                        }">
+          #{{wallet.number}}&nbsp;&nbsp;
+          <span class="glyphicon glyphicon-lock"
+                ng-if="wallet.isSecure">&nbsp;</span>{{wallet.name}}
+          <span ng-if="vm.openingWallet == wallet.number && vm.loadingXpub"
+                class="pull-right">Check BitLox</span>
+          <span ng-if="vm.openWallet.number == wallet.number"
+                class="pull-right">
+              <span ng-hide="vm.openWallet.updatingBalance"
+                    bc-val="vm.openWallet.balance"></span>
+              <span ng-show="!vm.openWallet.updatingBalance && vm.openWallet.unconfirmedBalance">
+                  (<span bc-val="vm.openWallet.unconfirmedBalance"></span> unconfirmed)
+              </span>
+              <span ng-show="vm.openWallet.updatingBalance">
+                  Updating
+              </span>
+          </span>
+        </a>
+
+      </ion-list>
+    </div>
+  </ion-content>
+</ion-view>
