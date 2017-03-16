@@ -6,19 +6,11 @@
   </ion-nav-bar>
 
   <ion-content  ng-controller="StatusCtrl as sc">
-    <div class=""  ng-controller="HomeCtrl as vm">
-        <h3>Device {{vm.uuid.payload.device_uuid + ""}}</h3>
-        <pre>{{vm.uuid.payload | json}}</pre>
-        <button class="btn btn-default"
-                ng-disabled="vm.openingDevice"
-                ng-click="vm.checkDevice()">Connect</button>
-    </div>
     <div ng-hide="sc.bitlox.connected || !sc.bitlox.connectAttempted">
         <h2>
-            No BitLox device detected.
-            <br>
+            No BitLox device detected.<br />
             Please connect your BitLox and
-            <a href ng-click="sc.refreshBitlox()">click or tap here to try again.</a>
+            <a href ng-click="sc.refreshBitlox()">tap here to try again.</a>
         </h2>
     </div>
     <div ng-show="sc.wallet.status">
@@ -40,14 +32,15 @@
           </i>
           <span class="add-type" translate>Create/Restore Wallet</span>
           <i class="icon bp-arrow-right"></i>
-
-          <wallet-create ng-show="showCreate" available-numbers="vm.availableWalletNumbers"
-                         on-finish="showCreate=false;vm.readWallets()"></wallet-create>
+<!-- 
+          <wallet-create available-numbers="vm.availableWalletNumbers"
+                         on-finish="showCreate=false;vm.readWallets()"></wallet-create> -->
 
         </a>
         <a ng-repeat="wallet in vm.wallets"
               ng-click="vm.loadWallet(wallet)"
               ng-disabled="vm.openWallet.number == wallet.number"
+              class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left"
               ng-class="{
                         'list-group-item-default': vm.openWallet.number != wallet.number,
                         'list-group-item-warning': vm.openingWallet == wallet.number,

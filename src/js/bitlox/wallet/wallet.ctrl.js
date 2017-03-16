@@ -83,9 +83,6 @@
         };
 
 
-
-        reset();
-
         function refreshAvailableNumbers(wallets) {
             if (!wallets) {
                 return;
@@ -117,6 +114,9 @@
             $timeout(vm.readWallets.bind(vm), 100);
         }
 
+
+
+        reset();
     }
 
 })(window, window.angular, window.chrome);

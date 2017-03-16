@@ -21,9 +21,10 @@
     "angular-clipboard": "^1.4.2",
     "angular-md5": "^0.1.10",
     "ngtouch": "^1.0.1",
-    "bytebuffer": "^5.0.1",
-    "protobuf": "^6.6.5",
-    "bignumber.js": "^4.0.0"
+    "bytebuffer": "5.0.1",
+    "protobuf": "5.0.1",
+    "bignumber.js": "^4.0.0",
+    "async": "^2.1.5"
   },
   "resolutions": {
     "angular": "1.5.3"

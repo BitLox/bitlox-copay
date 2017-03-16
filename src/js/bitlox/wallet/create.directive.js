@@ -12,7 +12,7 @@
                 availableNumbers: '=',
                 onFinish: '&',
             },
-            templateUrl: 'wallet/create.html',
+            templateUrl: 'views/bitlox/create.html',
             link: function(scope) {
 
                 reset();

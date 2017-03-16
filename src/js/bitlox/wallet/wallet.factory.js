@@ -425,7 +425,7 @@
             return a.confirmations < b.confirmations ? -1 : 1;
         }
 
-	// Assumes the amount is displayed as an eight-digit after the comma float (string)	
+	// Assumes the amount is displayed as an eight-digit after the comma float (string)
 		function stringToSatoshis(amountAsString) {
 			amountAsString = amountAsString.replace(/\./g,'');
 			var amountAsInteger = 0;
@@ -439,9 +439,9 @@
 			return amountAsInteger;
 		}
 
-        Wallet.prototype.txMap = function(tx) {
-            console.debug("*************************************");
-        	console.debug("ROOT txid " + tx.txid);
+    Wallet.prototype.txMap = function(tx) {
+        console.debug("*************************************");
+    	console.debug("ROOT txid " + tx.txid);
 
 			var epochDate = 0;
 			if (tx.confirmations > 0) {
@@ -457,47 +457,47 @@
 			tx.fees = tx.fees * 100000000;
 			console.debug("tx.fees " + tx.fees);
 
-            tx.type = 'send';
-            var wallet = this;
-            tx.amount = tx.valueOut * 100000000;
-            tx.totalAmount = tx.amount;
-            var ownAddresses = 0;
-            var addrCount = 0;
-            tx.vout.forEach(function(out) {
-                out.scriptPubKey.addresses.forEach(function(addr) {
-                    addrCount += 1;
-                    if (wallet.addresses.receive.hasOwnProperty(addr)) {
-                        tx.type = 'receive';
-                        ownAddresses += 1;
-                    } else if (wallet.addresses.change.hasOwnProperty(addr)) {
-                        ownAddresses += 1;
-                        var changeAmount = stringToSatoshis(out.value);
-                        console.debug("changeAmount " + changeAmount);
-                        tx.amount -= changeAmount;
-                    }
-                });
-            });
-            if (ownAddresses === addrCount) {
-                tx.type = 'transfer';
-            }
-            if (tx.type === 'receive') {
-                tx.vout.forEach(function(out) {
-                    out.scriptPubKey.addresses.forEach(function(addr) {
-                        if (!wallet.addresses.receive.hasOwnProperty(addr) &&
-                            !wallet.addresses.change.hasOwnProperty(addr)) {
-                            var receiveAmount = stringToSatoshis(out.value);
-                            console.debug("receiveAmount " + receiveAmount);
-                            tx.amount -= receiveAmount;
-                        }
-                    });
-                });
-            }
+      tx.type = 'send';
+      var wallet = this;
+      tx.amount = tx.valueOut * 100000000;
+      tx.totalAmount = tx.amount;
+      var ownAddresses = 0;
+      var addrCount = 0;
+      tx.vout.forEach(function(out) {
+          out.scriptPubKey.addresses.forEach(function(addr) {
+              addrCount += 1;
+              if (wallet.addresses.receive.hasOwnProperty(addr)) {
+                  tx.type = 'receive';
+                  ownAddresses += 1;
+              } else if (wallet.addresses.change.hasOwnProperty(addr)) {
+                  ownAddresses += 1;
+                  var changeAmount = stringToSatoshis(out.value);
+                  console.debug("changeAmount " + changeAmount);
+                  tx.amount -= changeAmount;
+              }
+          });
+      });
+      if (ownAddresses === addrCount) {
+          tx.type = 'transfer';
+      }
+      if (tx.type === 'receive') {
+          tx.vout.forEach(function(out) {
+              out.scriptPubKey.addresses.forEach(function(addr) {
+                  if (!wallet.addresses.receive.hasOwnProperty(addr) &&
+                      !wallet.addresses.change.hasOwnProperty(addr)) {
+                      var receiveAmount = stringToSatoshis(out.value);
+                      console.debug("receiveAmount " + receiveAmount);
+                      tx.amount -= receiveAmount;
+                  }
+              });
+          });
+      }
 
-            return tx;
-        };
+      return tx;
+    };
 
-        return Wallet;
+    return Wallet;
 
-    }
+  }
 
 })(window, window.angular, window.async);
