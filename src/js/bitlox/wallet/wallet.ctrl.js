@@ -26,13 +26,15 @@
           opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
           opts.account = 0;
           opts.networkName = 'livenet';
-
+          opts.m = 1;
+          opts.n = 1;
+          opts.singleAddress = false;
 
           opts.network = true
           opts.bwsurl = 'https://bws.bitpay.com/bws/api'
           ongoingProcess.set('importingWallet', true);
           console.warn("START IMPORTING")
-          profileService.importExtendedPublicKey(opts, function(err, walletId) {
+          profileService.createWallet(opts, function(err, walletId) {
             ongoingProcess.set('importingWallet', false);
             console.warn("DONE IMPORTING")
             if (err) {
@@ -42,8 +44,7 @@
             }
 
 
-            walletService.updateRemotePreferences(wallet);
-            profileService.setBackupFlag(wallet.credentials.walletId);
+            walletService.updateRemotePreferences(walletId);
             $ionicHistory.removeBackView();
             $state.go('tabs.home');
 
