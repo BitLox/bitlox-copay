@@ -4,44 +4,53 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidapi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper'];
+    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidapi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService'];
 
-    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper) {
-      console.log(derivationPathHelper)
+    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService) {
         var vm = this;
 
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
+
           var opts = {};
-          opts.externalSource = 'bitlox';
-          opts.extendedPublicKey = wallet.xpub;
-          opts.derivationPath = "m/0'/0";
-          opts.derivationStrategy = 'BIP32'
+          opts.externalSource = 'bitlox'
+          opts.extendedPublicKey = wallet.xpub
+          opts.derivationPath = derivationPathHelper.default
+          opts.derivationStrategy = 'BIP44'
           opts.hasPassphrase = false;
           opts.name = wallet.name;
-          opts.account = 1
-          opts.type = 2
-          opts.networkName = 'livenet'
+          opts.account = 0
+
+          var b = bwcService.getBitcore();
+          var x = b.HDPublicKey(wallet.xpub);
+          opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
+          opts.account = 0;
+          opts.networkName = 'livenet';
+
+
           opts.network = true
           opts.bwsurl = 'https://bws.bitpay.com/bws/api'
           ongoingProcess.set('importingWallet', true);
-          $timeout(function() {
-            profileService.importExtendedPublicKey(opts, function(err, walletId) {
-              ongoingProcess.set('importingWallet', false);
-              if (err) {
-                console.error(err)
-                popupService.showAlert(gettextCatalog.getString('Error'), err);
-                return;
-              }
+          console.warn("START IMPORTING")
+          profileService.importExtendedPublicKey(opts, function(err, walletId) {
+            ongoingProcess.set('importingWallet', false);
+            console.warn("DONE IMPORTING")
+            if (err) {
+              console.error(err)
+              popupService.showAlert(gettextCatalog.getString('Error'), err);
+              return;
+            }
 
 
-              walletService.updateRemotePreferences(wallet);
-              profileService.setBackupFlag(wallet.credentials.walletId);
-              $ionicHistory.removeBackView();
-              $state.go('tabs.home');
+            walletService.updateRemotePreferences(wallet);
+            profileService.setBackupFlag(wallet.credentials.walletId);
+            $ionicHistory.removeBackView();
+            $state.go('tabs.home');
 
-            });
-          }, 100);
+          });
+          // $timeout(function() {
+          //
+          // }, 100);
         };
 
         if(chrome && chrome.hid) {
@@ -81,7 +90,7 @@
                     console.debug("done loading wallet", wallet.number);
                     vm.openingWallet = null; // changed from -99 because I think it's fucking things up
                     console.log("WALLET LOADED", wallet.xpub)
-                    _importExtendedPublicKey(wallet.xpub)
+                    _importExtendedPublicKey(wallet)
                 });
         };
 

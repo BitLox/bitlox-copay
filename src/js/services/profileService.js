@@ -672,7 +672,8 @@ angular.module('copayApp.services')
     root.importExtendedPublicKey = function(opts, cb) {
       var walletClient = bwcService.getClient(null, opts);
       $log.debug('Importing Wallet XPubKey');
-
+      $log.debug(opts.extendedPublicKey, opts.externalSource, opts.entropySource)
+// nction(xPubKey, source, entropySourceHex, opts, cb) {
       walletClient.importFromExtendedPublicKey(opts.extendedPublicKey, opts.externalSource, opts.entropySource, {
         account: opts.account || 0,
         derivationStrategy: opts.derivationStrategy || 'BIP44',

@@ -140,6 +140,8 @@ module.exports = function(grunt) {
           'bower_components/bignumber.js/bignumber.min.js',
           'bower_components/async/dist/async.min.js',
           'lib/bitcoinjs-lib.js',
+          'lib/evothings.js',
+          'lib/easyble.dist.js',
           'src/js/bitlox/modules/*.js',
           'src/js/bitlox/util/*.js',
           'src/js/bitlox/hid/*.js',
