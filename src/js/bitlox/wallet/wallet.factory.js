@@ -7,12 +7,13 @@
     WalletFactory.$inject = [
         '$q', '$timeout',
         'WalletStatus',
-        'hidapi', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath'];
+        'hidapi', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'bleapi'
+      ];
 
     function WalletFactory(
         $q, $timeout,
         WalletStatus,
-        hidapi, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath) {
+        hidapi, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath, bleapi) {
 
         var Wallet = function(data) {
             this.number = data.wallet_number;
