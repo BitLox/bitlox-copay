@@ -17,7 +17,7 @@
     // don't load BLE for chrome app
     // if(chrome) {
     //   return false;
-    // }    
+    // }
   /*
    * The BLE plugin is loaded asynchronously so the ble
    * variable is set in the onDeviceReady handler.
@@ -3379,10 +3379,11 @@
 
   	initialize: function()
   	{
+      console.warn("000000000000000000000")
   		document.addEventListener(
   			'deviceready',
   			function() {
-          console.warn(1111111111111)
+          console.warn("1111111111111")
   				// fixAndroidHeight();
           		globalPINstatus = app.getPINstatus();
           		// $(".expert").addClass('hidden');
