@@ -1,17 +1,21 @@
 (function(window, angular) {
     'use strict';
+    var native = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
     angular.module('app.core')
         .controller('StatusCtrl', StatusCtrl);
 
-    StatusCtrl.$inject = ['hidapi', 'WalletStatus'];
+    StatusCtrl.$inject = ['hidapi', 'WalletStatus', 'bleapi'];
 
-    function StatusCtrl(hidapi, WalletStatus) {
+    function StatusCtrl(hidapi, WalletStatus, bleapi) {
         var vm = this;
 
+        vm.ble = bleapi.app;
+
+        var api = native ? bleapi : hidapi;
         vm.bitlox = {
             connectAttempted: false,
-            connected: true,
+            connected: false,
             status: "No Bitlox",
             alertClass: "danger"
         };
@@ -22,39 +26,39 @@
         };
 
         vm.refreshBitlox = function() {
-            hidapi.ping();
+            api.ping();
         };
 
-        hidapi.$scope.$watch('status', function(hidstatus) {
+        api.$scope.$watch('status', function(hidstatus) {
             switch(hidstatus) {
-            case hidapi.STATUS_CONNECTED:
+            case api.STATUS_CONNECTED:
                 vm.bitlox.connectAttempted = true;
                 vm.bitlox.connected = true;
                 vm.bitlox.status = "Bitlox connected";
                 vm.bitlox.alertClass = "success";
                 vm.bitlox.glyph = "glyphicon-ok";
                 break;
-            case hidapi.STATUS_CONNECTING:
+            case api.STATUS_CONNECTING:
                 vm.bitlox.connectAttempted = true;
                 vm.bitlox.status = "Bitlox connecting";
                 vm.bitlox.alertClass = "success";
                 vm.bitlox.glyph = "glyphicon-refresh";
                 break;
-            case hidapi.STATUS_DISCONNECTED:
+            case api.STATUS_DISCONNECTED:
                 console.warn("DISCONNECTED");
                 vm.bitlox.connected = false;
                 vm.bitlox.status = "Bitlox disconnected!";
                 vm.bitlox.alertClass = "danger";
                 vm.bitlox.glyph = "glyphicon-remove";
                 break;
-            case hidapi.STATUS_WRITING:
+            case api.STATUS_WRITING:
                 vm.bitlox.connectAttempted = true;
                 vm.bitlox.connected = true;
                 vm.bitlox.status = "Bitlox writing";
                 vm.bitlox.alertClass = "info";
                 vm.bitlox.glyph = "glyphicon-upload";
                 break;
-            case hidapi.STATUS_READING:
+            case api.STATUS_READING:
                 vm.bitlox.connectAttempted = true;
                 vm.bitlox.connected = true;
                 vm.bitlox.status = "Bitlox reading";

@@ -1,5 +1,6 @@
 (function(window, angular, async) {
     'use strict';
+    var native = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
     angular.module('app.wallet')
         .factory('Wallet', WalletFactory);
@@ -28,6 +29,8 @@
             this.unspent = [];
             this.transactions = [];
         };
+
+        var api = native ? bleapi : hidapi
 
         Wallet.NOTIFY_XPUB_LOADED = 'xpub loaded';
 
@@ -62,7 +65,8 @@
         });
 
         Wallet.list = function() {
-            return hidapi.listWallets().then(function(res) {
+
+            return api.listWallets().then(function(res) {
                 var wallets = [];
                 res.payload.wallets.forEach(function(data) {
                     wallets.push(new Wallet(data));
@@ -72,13 +76,13 @@
         };
 
         Wallet.create = function(walletNumber, options) {
-            return hidapi.newWallet(walletNumber, options);
+            return api.newWallet(walletNumber, options);
         };
 
         // scan the currently open wallet and get the bip32 source key
         // from the data
         Wallet.getBip32 = function(wallet) {
-            return hidapi.scanWallet().then(function(data) {
+            return api.scanWallet().then(function(data) {
                 var bip32;
                 try {
                     bip32 = new BIP32(data.payload.xpub);
@@ -188,10 +192,10 @@
                             // then continue --> this must be masked when actually sending
                             if (addrType === 'receive') {
                                 wallet.nextAddress = address;
-                                hidapi.showQr(index);
+                                api.showQr(index);
                             }
                             if (addrType === 'change') {
-                                hidapi.setChangeAddress(index);
+                                api.setChangeAddress(index);
                             }
                             return next();
                         }
@@ -265,8 +269,8 @@
             var wallet = this;
             // WalletStatus.status = WalletStatus.STATUS_LOADING;
             var deferred = $q.defer();
-            hidapi.loadWallet(this.number).then(function(data) {
-                if (data.type !== hidapi.TYPE_SUCCESS) {
+            api.loadWallet(this.number).then(function(data) {
+                if (data.type !== api.TYPE_SUCCESS) {
                     wallet.unlocked = false;
                     return deferred.reject("Error opening wallet");
                 }
@@ -298,11 +302,11 @@
         };
 
         Wallet.prototype.showQr = function(chainIndex) {
-            return hidapi.showQr(chainIndex);
+            return api.showQr(chainIndex);
         };
 
         Wallet.prototype.setChangeAddress = function(chainIndex) {
-        	return hidapi.setChangeAddress(chainIndex);
+        	return api.setChangeAddress(chainIndex);
         };
 
         Wallet.prototype.send = function(outputs, fee, forceSmallChange) {
@@ -345,7 +349,7 @@
         function doSend(tx) {
             console.debug("send: signing with device");
             // sign the transaction on the device
-            return hidapi.signTransaction(tx)
+            return api.signTransaction(tx)
                 .then(function(res) {
                     // after signing, replace the input scripts
                     // with the signed versions
@@ -358,7 +362,7 @@
 
         Wallet.prototype.signMessage = function(address, chain, chainIndex, message) {
             WalletStatus.status = WalletStatus.STATUS_SIGNING;
-            return hidapi.signMessage(address, chain, chainIndex, message)
+            return api.signMessage(address, chain, chainIndex, message)
                 .finally(function() {
                     WalletStatus.status = null;
                 });
@@ -367,18 +371,18 @@
         // renames the currently loaded wallet
         Wallet.prototype.rename = function(newName) {
             var wallet = this;
-            return hidapi.renameWallet(newName).then(function() {
+            return api.renameWallet(newName).then(function() {
                 console.debug(arguments);
                 wallet._name = newName;
             });
         };
 
         Wallet.prototype.remove = function() {
-            return hidapi.deleteWallet(this.number);
+            return api.deleteWallet(this.number);
         };
 
         Wallet.prototype.removeConfirm = function(otp) {
-            return hidapi.sendOTP(otp);
+            return api.sendOTP(otp);
         };
 
         Wallet.prototype.loadTransactions = function() {

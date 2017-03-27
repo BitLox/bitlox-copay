@@ -1,11 +1,7 @@
 (function(window, chrome, angular, async, ProtoBuf, ByteBuffer) {
     'use strict';
 
-    // for now just do not load if we are in chrome app
-    if(chrome && chrome.hid) {
-      console.log('not loading web hid')
-      return false;
-    }
+
 
     angular.module('hid')
         .service('hidapi', HidAPI);
@@ -47,7 +43,13 @@
         this.$scope = $rootScope.$new();
         this.$scope.status = HidAPI.STATUS_DISCONNECTED;
     }
+    var app = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
+    // for now just do not load if we are in chrome app
+    if((chrome && chrome.hid) || app) {
+      console.log('not loading web hid')
+      return false;
+    }
     HidAPI.TYPE_INITIALIZE         = HidAPI.prototype.TYPE_INITIALIZE = 'initialize';
     HidAPI.TYPE_PUBLIC_ADDRESS     = HidAPI.prototype.TYPE_PUBLIC_ADDRESS = 'public address';
     HidAPI.TYPE_ADDRESS_COUNT      = HidAPI.prototype.TYPE_ADDRESS_COUNT = 'address count';

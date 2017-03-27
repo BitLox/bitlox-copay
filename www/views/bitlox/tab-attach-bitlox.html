@@ -18,7 +18,19 @@
               ng-class="sc.wallet.glyph"></span>
         {{sc.wallet.status}}
     </div>
+    <div
+      ng-show="sc.ble.initialize">
 
+      <h2 ng-show="sc.ble.knownDevices.length > 0">Select your Device</h2>
+      <ion-list>
+        <a ng-repeat="device in sc.ble.knownDevices"
+              ng-click="vm.ble.connect(device.address)"
+              class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left">
+          <span class="glyphicon glyphicon-lock">&nbsp;</span>{{device.name}}
+        </a>
+
+      </ion-list>
+    </div>
 
     <div  ng-controller="WalletCtrl as vm"
       ng-show="sc.bitlox.connected">
