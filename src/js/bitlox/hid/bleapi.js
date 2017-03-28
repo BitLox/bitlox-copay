@@ -5,19 +5,23 @@
     angular.module('hid')
         .service('bleapi', BleApi);
 
-    BleApi.$inject = ['$rootScope'];
+    BleApi.$inject = ['$rootScope','$q', '$timeout', '$interval','hidCommands'];
 
+    function BleApi($rootScope,$q,$timeout,$interval, hidCommands) {
+        this.app = {};
+        this.$q = $q;
+        this.$timeout = $timeout;
+        this.$interval = $interval;
+        this.$scope = $rootScope.$new();
+        this.$scope.status = BleApi.STATUS_DISCONNECTED;
+        this.deviceCommands = hidCommands;
+		}
     BleApi.STATUS_DISCONNECTED     = BleApi.prototype.STATUS_DISCONNECTED = "disconnected";
     BleApi.STATUS_CONNECTED        = BleApi.prototype.STATUS_CONNECTED = "connected";
     BleApi.STATUS_CONNECTING       = BleApi.prototype.STATUS_CONNECTING = "connecting";
     BleApi.STATUS_READING          = BleApi.prototype.STATUS_READING = "reading";
     BleApi.STATUS_WRITING          = BleApi.prototype.STATUS_WRITING = "writing";
 
-    function BleApi($rootScope) {
-        this.app = {};
-        this.$scope = $rootScope.$new();
-        this.$scope.status = BleApi.STATUS_DISCONNECTED;
-		}
     // don't load BLE for chrome app
     if(chrome) {
       return false;
@@ -492,7 +496,7 @@
           var magic = "2323"
           tempTXstring = magic.concat(tempTXstring);
           console.log("init: " + tempTXstring);
-  		autoCannedTransaction(tempTXstring);
+  		BleApi.app.sliceAndWrite64(tempTXstring);
       }
 
 
@@ -535,7 +539,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
   	}
 
 
@@ -578,7 +582,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
   	}
 
 
@@ -622,7 +626,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
   	}
 
   	function respondToOTPrequest()
@@ -673,10 +677,10 @@
   			var magic = "2323"
   			tempTXstring = magic.concat(tempTXstring);
   			console.log("tempTXstring = " + tempTXstring);
-  			autoCannedTransaction(tempTXstring);
+  			BleApi.app.sliceAndWrite64(tempTXstring);
          }else if(results.buttonIndex == 2){
   			BleApi.app.displayStatus('OTP canceled');
-          	BleApi.app.sliceAndWrite64(deviceCommands.otp_cancel);
+          	BleApi.app.sliceAndWrite64(BleApi.deviceCommands.otp_cancel);
 
           }
       }
@@ -738,7 +742,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
    	}
 
 
@@ -776,7 +780,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   	}
 
@@ -833,7 +837,7 @@
           tempTXstring = magic.concat(tempTXstring);
   //         console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   	}
 
@@ -989,7 +993,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   //         return renameCommand;
       }
@@ -1141,7 +1145,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   //         return renameCommand;
       }
@@ -1264,7 +1268,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
       }
 
   ////////////////////////////
@@ -1361,7 +1365,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   //         return renameCommand;
       }
@@ -1449,7 +1453,7 @@
           tempTXstring = magic.concat(tempTXstring);
           console.log("tempTXstring = " + tempTXstring);
 
-          autoCannedTransaction(tempTXstring);
+          BleApi.app.sliceAndWrite64(tempTXstring);
 
   	}
 
@@ -1687,70 +1691,13 @@
       var sendTransactionForSigning = function() {
           var preppedForDevice = document.getElementById("device_signed_transaction").value;
           // 	console.log("send to device = " + preppedForDevice);
-          autoCannedTransaction(preppedForDevice);
+          BleApi.app.sliceAndWrite64(preppedForDevice);
       }
 
       ///////////////////////////////////////////////////////////////////////////////////////
       // PROTOBUF (end)
       ///////////////////////////////////////////////////////////////////////////////////////
 
-
-
-      var deviceCommands = {
-          ping: '23230000000000070A0548656C6C6F',
-          format_storage: '2323000D000000220A204242424242424242424242424242424242424242424242424242424242424242',
-          button_ack: '2323005100000000',
-          button_cancel: '2323005200000000',
-          pin_cancel: '2323005500000000',
-          otp_cancel: '2323005800000000',
-  		GetAllWallets: '2323008100000000',
-
-          list_wallets: '2323001000000000',
-
-          scan_wallet: '2323006100000000',
-
-          load_wallet:    '2323000B00000000',
-          load_wallet_0:  '2323000B000000020800',
-          load_wallet_1:  '2323000B000000020801',
-          load_wallet_2:  '2323000B000000020802',
-          load_wallet_3:  '2323000B000000020803',
-          load_wallet_4:  '2323000B000000020804',
-          load_wallet_5:  '2323000B000000020805',
-          load_wallet_6:  '2323000B000000020806',
-          load_wallet_7:  '2323000B000000020807',
-          load_wallet_8:  '2323000B000000020808',
-          load_wallet_9:  '2323000B000000020809',
-          load_wallet_10: '2323000B00000002080A',
-          load_wallet_11: '2323000B00000002080B',
-          load_wallet_12: '2323000B00000002080C',
-          load_wallet_13: '2323000B00000002080D',
-          load_wallet_14: '2323000B00000002080E',
-          load_wallet_15: '2323000B00000002080F',
-          load_wallet_16: '2323000B000000020810',
-          load_wallet_17: '2323000B000000020811',
-          load_wallet_18: '2323000B000000020812',
-          load_wallet_19: '2323000B000000020813',
-          load_wallet_20: '2323000B000000020814',
-          load_wallet_21: '2323000B000000020815',
-          load_wallet_22: '2323000B000000020816',
-          load_wallet_23: '2323000B000000020817',
-          load_wallet_24: '2323000B000000020818',
-          load_wallet_25: '2323000B000000020819',
-
-          delete_wallet_0: '23230016000000020800',
-          delete_wallet_1: '23230016000000020801',
-          delete_wallet_2: '23230016000000020802',
-          delete_wallet_3: '23230016000000020803',
-          delete_wallet_4: '23230016000000020804',
-          delete_wallet_5: '23230016000000020805',
-
-          get_entropy_4096_bytes: '2323001400000003088020',
-          get_entropy_32_bytes: '23230014000000020820',
-          reset_lang: '2323005900000000',
-          get_device_uuid: '2323001300000000',
-          features: '2323003A00000000',
-          deadbeef: '7E7E'
-      };
 
 
 
@@ -1860,7 +1807,7 @@
   							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
 
-  							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
 
   							BleApi.app.displayStatus('Listing wallets');
   							currentCommand = '';
@@ -1872,7 +1819,7 @@
   							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
 
-  							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
           					$('#renameWallet').attr('disabled',false);
 
   							BleApi.app.displayStatus('Listing wallets');
@@ -1883,7 +1830,7 @@
 
   							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
   							pausecomp(15000);
-  							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
 
   							BleApi.app.displayStatus('Listing refreshed');
 
@@ -1892,7 +1839,7 @@
   						case "formatDevice":
   							window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   							BleApi.app.displayStatus('Ready');
-  							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   							$('#myTab a[href="#bip32"]').tab('show');
   							currentCommand = '';
   							break;
@@ -1909,7 +1856,7 @@
   							$("#rawTransactionStatus").addClass('hidden');
   							$('#myTab a[href="#walletDetail"]').tab('show');
   							BleApi.app.displayStatus('Waiting for data');
-              				BleApi.app.sliceAndWrite64(deviceCommands.scan_wallet);
+              				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
                       		$("#renameWallet").attr('disabled',false);
                       		$("#newWalletButton").attr('disabled',false);
                       		$(".wallet_row").attr('disabled',false);
@@ -1946,7 +1893,7 @@
   // 							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   // 							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
   //
-  // 							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
   // 							BleApi.app.displayStatus('Listing wallets');
   							currentCommand = '';
@@ -1958,7 +1905,7 @@
   // 							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   // 							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
   //
-  // 							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //         					$('#renameWallet').attr('disabled',false);
   //
   // 							BleApi.app.displayStatus('Listing wallets');
@@ -1969,7 +1916,7 @@
   //
   // 							$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
   // 							pausecomp(15000);
-  // 							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
   // 							BleApi.app.displayStatus('Listing refreshed');
   //
@@ -1978,7 +1925,7 @@
   						case "formatDevice":
   // 							window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   // 							BleApi.app.displayStatus('Ready');
-  // 							BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   // 							$('#myTab a[href="#bip32"]').tab('show');
   							currentCommand = '';
   							break;
@@ -2013,7 +1960,7 @@
                       break;
 
                   case "50": // #define PACKET_TYPE_ACK_REQUEST			0x50
-  					BleApi.app.sliceAndWrite64(deviceCommands.button_ack);
+  					BleApi.app.sliceAndWrite64(BleApi.deviceCommands.button_ack);
                       break;
 
                   case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
@@ -2180,44 +2127,8 @@
       }
 
       function loadWalletNames() {
-          BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+          BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
       }
-
-
-      function autoCannedTransaction(transData) {
-      	BleApi.app.sliceAndWrite64(transData);
-  //         chunkSize = 32;
-  //         var chunkedTData = [];
-  //         var tempDTS = '';
-  //         tempDTS = transData;
-  // //         console.log('Size of transData : ' + tempDTS.length);
-  //         var transDataRemainder = tempDTS.length % 16;
-  // //         console.log('Remainder : ' + transDataRemainder);
-  //         if(transDataRemainder==0||transDataRemainder==12||transDataRemainder==14){
-  // 			var prepend = '00000000';
-  // 			tempDTS = prepend.concat(tempDTS);
-  // 		}
-  // //         console.log('tempDTS : ' + tempDTS);
-  //         chunkedTData = tempDTS.chunk(chunkSize);
-  // //         console.log('Number of chunks : ' + chunkedTData.length);
-  //         for (i = 0; i < (chunkedTData.length - 1); i++) {
-  //             dataToSend = chunkedTData[i];
-  //             sendToDevice = '00' + dataToSend;
-  //             var txResult = device.hid_write(sendToDevice);
-  // //             console.log('HID TX : ' + sendToDevice);
-  // //             console.log('HID TX size: ' + txResult);
-  //             pausecomp(50);
-  //         }
-  //
-  //         dataToSend = chunkedTData[chunkedTData.length - 1];
-  // //         console.log('dataToSend.length: ' + dataToSend.length);
-  // 		sendToDevice = '00' + dataToSend + '7E7E';
-  // 		var txResult = device.hid_write(sendToDevice);
-  // // 		console.log('HID TX : ' + sendToDevice);
-  // // 		console.log('HID TX size: ' + txResult);
-      }
-
-
 
 
       ///////////////////////////////////////////////////////////////////////////////////////
@@ -3334,13 +3245,96 @@
   		}
   	}
 
+    BleApi.prototype.listWallets = function() {
+      return this.write(this.deviceCommands.list_wallets);
+    }
 
+    BleApi.prototype.write = function(data) // old sliceAndWrite64, 'data' is a command constant
+    {
+      if(this.$scope.status !== BleApi.STATUS_CONNECTED) {
+        // return if the device isn't currently idle
+        if(this.$scope.status == BleApi.STATUS_DISCONNECTED) {
+          return this.$q.reject(new Error("Device is not connected"))
+        }
+        return this.$q.reject(new Error("Device is busy"))
+      }
+      var chunkSize;
+      if(platform == "android")
+      {
+        chunkSize = 40;  // android
+        console.log('ChunkSize set to: ' + chunkSize);
+      }
+      else
+      {
+        chunkSize = 128;
+        console.log('ChunkSize set to: ' + chunkSize);
+      }
 
+      var thelength = data.length;
+      var iterations = Math.floor(thelength/chunkSize);
+      console.log('iterations : ' + iterations);
+      var remainder  = thelength%chunkSize;
+      console.log('remainder : ' + remainder);
+      var k = 0;
+      var m = 0;
+      var transData = [];
 
+    // 		chop the command up into k pieces
+      for(k = 0; k < iterations; k++)
+      {
+        transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
+        console.log("k " + k);
+      };
 
+      console.log("k out " + k);
 
+    // 		deal with the leftover, backfilling the frame with zeros
+      if(remainder != 0)
+      {
+        transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
+        for (m = remainder; m < chunkSize; m++)
+        {
+          transData[k] = transData[k].concat("0");
+        }
+        console.log("remainder " + transData[k]);
 
+        console.log("remainder length " + transData[k].length);
+      };
 
+    // 		The BLE writer takes ByteBuffer arrays
+      var ByteBuffer = dcodeIO.ByteBuffer;
+      var j = 0;
+      var parseLength = 0;
+      console.log("transData.length " + transData.length);
+      for (j = 0; j< transData.length; j++)
+      {
+        parseLength = transData[j].length
+
+        var bb = new ByteBuffer();
+      // 	console.log("utx length = " + parseLength);
+        var i;
+        for (i = 0; i < parseLength; i += 2) {
+          var value = transData[j].substring(i, i + 2);
+      // 	console.log("value = " + value);
+          var prefix = "0x";
+          var together = prefix.concat(value);
+      // 	console.log("together = " + together);
+          var result = parseInt(together);
+      // 	console.log("result = " + result);
+
+          bb.writeUint8(result);
+        }
+        bb.flip();
+
+        BleApi.app.passToWrite(bb);
+        if(platform == "android")
+        {
+          pausecomp(100);
+        }
+      }
+      return this.$q.resolve(transData.length);
+      // return deferred.promise;
+    };
 
   /**
    * Application object that holds data and functions used by the BleApi.app.
@@ -3355,6 +3349,7 @@
   	// Discovered devices.
   	knownDevices: {},
   	selectedDevice: {},
+    bleReady : false,
 
   	// Reference to the device we are connecting to. Unused
   // 	connectee: null,
@@ -3388,16 +3383,8 @@
   		document.addEventListener(
   			'deviceready',
   			function() {
-  				// fixAndroidHeight();
-          		// globalPINstatus = BleApi.app.getPINstatus();
-          		// $(".expert").addClass('hidden');
-          		// $(".standard").removeClass('hidden');
-  				// displayMode = 'STANDARD';
-
-  				// evothings.scriptsLoaded(BleApi.app.onDeviceReady);
-          // StatusBar.styleLightContent();
-  				// BleApi.app.getPIN(globalPINstatus);
-          BleApi.app.onDeviceReady();
+          // BleApi.app.startScanNew(BleApi.app.deviceFound);
+          BleApi.app.bleReady = true;
   			},
   			false);
   	},
@@ -3536,12 +3523,6 @@
   	},
 
 
-  	// Called when device plugin functions are ready for use.
-  	onDeviceReady: function()
-  	{
-  		ble = evothings.ble; // Evothings BLE plugin, needed globally
-  	  BleApi.app.startScanNew(BleApi.app.deviceFound);
-  	},
 
 
 
@@ -3589,7 +3570,7 @@
   	//   callbackFun(deviceInfo, errorCode)
   	//   deviceInfo: address, rssi, name
   	//   errorCode: String
-  	startScanNew: function(callbackFun)
+  	startScanNew: function()
   	{
   		BleApi.app.stopScan();
   		BleApi.app.displayStatus('Scanning...');
@@ -3601,14 +3582,14 @@
   				// We filter out these values here.
   				if (device.rssi <= 0)
   				{
-  					callbackFun(device, null);
+  					BleApi.app.deviceFound(device, null);
   				}
   			},
   			function(errorCode)
   			{
           console.error("BITLOX BLE SCAN ERROR", errorCode)
   				// Report error.
-  				callbackFun(null, errorCode);
+  				BleApi.app.deviceFound(null, errorCode);
   			}
   		);
   	},
@@ -3699,89 +3680,12 @@
   *	(My testbed is an old Huawei Android handset) - or possible dynamically set via a ping/echo check of connectivity speed.
   *	data: hex encoded string
   */
-  	sliceAndWrite64: function(data)
-  	{
-  		var chunkSize;
-  		if(platform == "android")
-  		{
-  			chunkSize = 40;  // android
-  			console.log('ChunkSize set to: ' + chunkSize);
-  		}
-  		else
-  		{
-  			chunkSize = 128;
-  			console.log('ChunkSize set to: ' + chunkSize);
-  		}
-
-  		var thelength = data.length;
-  		var iterations = Math.floor(thelength/chunkSize);
-  		console.log('iterations : ' + iterations);
-  		var remainder  = thelength%chunkSize;
-  		console.log('remainder : ' + remainder);
-  		var k = 0;
-  		var m = 0;
-  		var transData = [];
-
-  // 		chop the command up into k pieces
-  		for(k = 0; k < iterations; k++)
-  		{
-  			transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
-  			console.log("k " + k);
-  		};
-
-  		console.log("k out " + k);
-
-  // 		deal with the leftover, backfilling the frame with zeros
-  		if(remainder != 0)
-  		{
-  			transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
-  			for (m = remainder; m < chunkSize; m++)
-  			{
-  				transData[k] = transData[k].concat("0");
-  			}
-  			console.log("remainder " + transData[k]);
-
-  			console.log("remainder length " + transData[k].length);
-  		};
-
-  // 		The BLE writer takes ByteBuffer arrays
-  		var ByteBuffer = dcodeIO.ByteBuffer;
-  		var j = 0;
-  		var parseLength = 0;
-  		console.log("transData.length " + transData.length);
-  		for (j = 0; j< transData.length; j++)
-  		{
-  			parseLength = transData[j].length
-
-  			var bb = new ByteBuffer();
-  		// 	console.log("utx length = " + parseLength);
-  			var i;
-  			for (i = 0; i < parseLength; i += 2) {
-  				var value = transData[j].substring(i, i + 2);
-  		// 	console.log("value = " + value);
-  				var prefix = "0x";
-  				var together = prefix.concat(value);
-  		// 	console.log("together = " + together);
-  				var result = parseInt(together);
-  		// 	console.log("result = " + result);
-
-  				bb.writeUint8(result);
-  			}
-  			bb.flip();
-
-  			BleApi.app.passToWrite(bb);
-  			if(platform == "android")
-  			{
-  				pausecomp(100);
-  			}
-  		}
-  	},
 
 
   // 	This function adds the parameters the write function needs
   	passToWrite: function(passedData)
   	{
-  		BleApi.app.write(
+  		BleApi.app.bleWrite(
   			'writeCharacteristic',
   			BleApi.app.deviceHandle,
   			BleApi.app.characteristicWrite,
@@ -3812,11 +3716,11 @@
 
 
   // 	Actual write function
-  	write: function(writeFunc, deviceHandle, handle, value)
+  	bleWrite: function(writeFunc, deviceHandle, handle, value)
   	{
   		if (handle)
   		{
-  			ble[writeFunc](
+  			evothings.ble[writeFunc](
   				deviceHandle,
   				handle,
   				value,
@@ -3877,7 +3781,7 @@
   		console.log('data at beginning: ' + sD);
 
   		// Turn notifications on.
-  		BleApi.app.write(
+  		BleApi.app.bleWrite(
   			'writeDescriptor',
   			deviceHandle,
   			BleApi.app.descriptorNotification,
@@ -4117,7 +4021,7 @@
   		// Insert the device into table of found devices.
   		BleApi.app.knownDevices[device.address] = device;
       //this next line goes nuts in logcat. use wisely
-      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify(device));
+      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify(BleApi.app.knownDevices));
 
   	}
   	else if (errorCode)
@@ -4403,7 +4307,7 @@ BleApi.app.initialize();
   //             var toSendRaw = document.getElementById('raw_input').value;
   //
   //             console.log("RAW: " + toSendRaw);
-  //             autoCannedTransaction(toSendRaw);
+  //             BleApi.app.sliceAndWrite64(toSendRaw);
   //         });
   //
   //         $('#direct_load_wallet').on('click', function() {
@@ -4423,7 +4327,7 @@ BleApi.app.initialize();
   //         });
   //
   // //         $('#format_storage').on('click', function() {
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.format_storage);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.format_storage);
   // //         });
   //
   // 		function formatResponse(buttonIndex)
@@ -4433,7 +4337,7 @@ BleApi.app.initialize();
   // 				window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   // 				currentCommand = 'formatDevice';
   // 				BleApi.app.displayStatus('Formatting');
-  // 				BleApi.app.sliceAndWrite64(deviceCommands.format_storage);
+  // 				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.format_storage);
   // 			}
   // 		};
   //
@@ -4447,24 +4351,24 @@ BleApi.app.initialize();
   //         });
   //
   //         $('#button_ack').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.button_ack);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.button_ack);
   //         });
   //
   //         $('#button_cancel').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.button_cancel);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.button_cancel);
   //         });
   //
   //
   // //         $('#new_wallet').on('click', function() {
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.new_wallet);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.new_wallet);
   // //         });
   //
   // //         $('#new_wallet_default').on('click', function() {
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.new_wallet_default);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.new_wallet_default);
   // //         });
   //
   //         $('#get_entropy_32_bytes').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.get_entropy_32_bytes);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.get_entropy_32_bytes);
   //         });
   //
   //
@@ -4473,7 +4377,7 @@ BleApi.app.initialize();
   //         });
   //
   //         $('#otp_cancel').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.otp_cancel);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.otp_cancel);
   //         });
   //
   //         $('#pin_ack').on('click', function() {
@@ -4481,28 +4385,28 @@ BleApi.app.initialize();
   //         });
   //
   //         $('#pin_cancel').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.pin_cancel);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.pin_cancel);
   //         });
   //
   //
   // //         $('#get_device_uuid').on('click', function() {
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.get_device_uuid);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.get_device_uuid);
   // //         });
   //
   //
   // //         $('#reset_lang').on('click', function() {
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.reset_lang);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.reset_lang);
   // //         });
   //
   //         $('#resetLanguage').on('click', function() {
-  //             BleApi.app.sliceAndWrite64(deviceCommands.reset_lang);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.reset_lang);
   //             window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   //         });
   //
   //
   // //         $('#scan_wallet').on('click', function() {
   // //             event.preventDefault();
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.scan_wallet);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
   // //         });
   //
   //         $('#newWalletButton').on('click', function() {
@@ -4552,7 +4456,7 @@ BleApi.app.initialize();
   //
   // //         $('#uuid').on('click', function() {
   // //             event.preventDefault();
-  // //             BleApi.app.sliceAndWrite64(deviceCommands.get_device_uuid);
+  // //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.get_device_uuid);
   // //         });
   //
   //         $('#sendButton').on('click', function() {
@@ -4602,7 +4506,7 @@ BleApi.app.initialize();
   //
   // 				$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
   //
-  // 				BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
+  // 				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
   // 				BleApi.app.displayStatus('Listing wallets');
   //             }
@@ -4629,7 +4533,7 @@ BleApi.app.initialize();
   //
   //         $(document).on("click", "#GetAll", function() {
   //             event.preventDefault();
-  //             BleApi.app.sliceAndWrite64(deviceCommands.GetAllWallets);
+  //             BleApi.app.sliceAndWrite64(BleApi.deviceCommands.GetAllWallets);
   //         });
   //
   // 	$('.nav-collapse').click('li', function() {
@@ -4668,7 +4572,7 @@ BleApi.app.initialize();
   // 				$(thisbtn).val('Submit').attr('disabled',false);
   // 			}
   // 		});
-  // 	BleApi.app.sliceAndWrite64(deviceCommands.scan_wallet);
+  // 	BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
   // 	currentCommand = '';
   // 	}
   //

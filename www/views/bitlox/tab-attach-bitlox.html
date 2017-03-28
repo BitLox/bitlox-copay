@@ -19,12 +19,12 @@
         {{sc.wallet.status}}
     </div>
     <div
-      ng-show="sc.ble.initialize">
-
-      <h2 ng-show="sc.ble.knownDevices.length > 0">Select your Device</h2>
+      ng-show="sc.native">
+      <h2 ng-hide="sc.knownDevices.length < 1">Please connect your Bitlox in Bluetooth mode.</h2>
+      <h2 ng-show="sc.knownDevices.length > 0">Select Device</h2>
       <ion-list>
-        <a ng-repeat="device in sc.ble.knownDevices"
-              ng-click="vm.ble.connect(device.address)"
+        <a ng-repeat="device in sc.knownDevices"
+              ng-click="sc.connectBle(device.address)"
               class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left">
           <span class="glyphicon glyphicon-lock">&nbsp;</span>{{device.name}}
         </a>

@@ -65,7 +65,7 @@
         });
 
         Wallet.list = function() {
-
+            
             return api.listWallets().then(function(res) {
                 var wallets = [];
                 res.payload.wallets.forEach(function(data) {
