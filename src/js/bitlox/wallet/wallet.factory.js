@@ -1,6 +1,6 @@
 (function(window, angular, async) {
     'use strict';
-    var native = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
+    var isNative = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
     angular.module('app.wallet')
         .factory('Wallet', WalletFactory);
@@ -30,7 +30,7 @@
             this.transactions = [];
         };
 
-        var api = native ? bleapi : hidapi
+        var api = isNative ? bleapi : hidapi
 
         Wallet.NOTIFY_XPUB_LOADED = 'xpub loaded';
 
@@ -65,7 +65,7 @@
         });
 
         Wallet.list = function() {
-            
+
             return api.listWallets().then(function(res) {
                 var wallets = [];
                 res.payload.wallets.forEach(function(data) {

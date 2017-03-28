@@ -8,7 +8,6 @@
     BleApi.$inject = ['$rootScope','$q', '$timeout', '$interval','hidCommands'];
 
     function BleApi($rootScope,$q,$timeout,$interval, hidCommands) {
-        this.app = {};
         this.$q = $q;
         this.$timeout = $timeout;
         this.$interval = $interval;
@@ -3340,7 +3339,7 @@
    * Application object that holds data and functions used by the BleApi.app.
    */
 
-  BleApi.app = {
+  BleApi.prototype.app = {
   // 	scanner part
   	devices: {},
   // 	ui: {},
@@ -3371,7 +3370,7 @@
   	{
   		// if(document.getElementById('status').innerHTML == status)
   		// 	return;
-      BleApi.app.currentStatusString = status;
+      this.currentStatusString = status;
   		console.log('Status: '+status);
   		// document.getElementById('status').innerHTML = status
   	},
@@ -3380,11 +3379,12 @@
 
   	initialize: function()
   	{
+      var appapi = this
   		document.addEventListener(
   			'deviceready',
   			function() {
           // BleApi.app.startScanNew(BleApi.app.deviceFound);
-          BleApi.app.bleReady = true;
+          appapi.bleReady = true;
   			},
   			false);
   	},
@@ -3397,7 +3397,7 @@
   // 			event.preventDefault();
   			currentCommand = "loadWallet";
   			directLoadWallet(results.input1);
-  			BleApi.app.displayStatus('Loading wallet');
+  			this.displayStatus('Loading wallet');
 
   			window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   			document.getElementById("loaded_wallet_name").innerHTML = "<small><i>HIDDEN</i></small>";
@@ -3421,7 +3421,7 @@
   			// OK clicked, show input value
   			if(results.input1 != PINvalue)
   			{
-  				BleApi.app.initialize();
+  				this.initialize();
   			}else if(results.input1 === PINvalue){
   				$("#theBody").removeClass('grell');
   				$('#myTab a[href="#ble_scan"]').tab('show');
@@ -3432,7 +3432,7 @@
   		if(results.buttonIndex == 2)
   		{
   			// Cancel clicked
-  			BleApi.app.initialize();
+  			this.initialize();
   		}
   	},
 
@@ -3441,15 +3441,15 @@
   	{
   		if(resultsFirst.buttonIndex == 1)
   		{
-  			BleApi.app.pinTheFirst = resultsFirst.input1;
-  // 			alert(BleApi.app.pinTheFirst);
+  			this.pinTheFirst = resultsFirst.input1;
+  // 			alert(this.pinTheFirst);
   			pausecomp(300);
-  			window.plugins.pinDialog.prompt("Verify your desired PIN", BleApi.app.PINsetcallback, "RE-ENTER APP PIN", ["OK","Cancel"]);
+  			window.plugins.pinDialog.prompt("Verify your desired PIN", this.PINsetcallback, "RE-ENTER APP PIN", ["OK","Cancel"]);
 
   		}else if(resultsFirst.buttonIndex == 2)
   		{
   // 		alert("You can later set a PIN in the extras menu");
-  			BleApi.app.pinFirstDecline = 1;
+  			this.pinFirstDecline = 1;
   			// Cancel clicked
           	window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   			$("#theBody").removeClass('grell');
@@ -3462,7 +3462,7 @@
   	{
   		if(results.buttonIndex == 1)
   		{
-  			if(results.input1 == BleApi.app.pinTheFirst)
+  			if(results.input1 == this.pinTheFirst)
   			{
   				window.localStorage['PINvalue'] = results.input1;
   				var PINvalue = window.localStorage['PINvalue'];
@@ -3478,7 +3478,7 @@
   			{
   				window.plugins.toast.show('PINs don\'t match', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   				pausecomp(300);
-  				BleApi.app.setAppPIN();
+  				this.setAppPIN();
   			}
   		}
   		if(results.buttonIndex == 2)
@@ -3501,7 +3501,7 @@
 
   	setAppPIN: function()
   	{
-  		window.plugins.pinDialog.prompt("Enter your desired PIN", BleApi.app.firstPINcache, "SET APP PIN", ["OK","Cancel"]);
+  		window.plugins.pinDialog.prompt("Enter your desired PIN", this.firstPINcache, "SET APP PIN", ["OK","Cancel"]);
   	},
 
   	getPINstatus: function()
@@ -3515,10 +3515,10 @@
   	{
 
   			if(status === 'true'){
-  				window.plugins.pinDialog.prompt("Enter App PIN to proceed", BleApi.app.PINcallback, "SECURE AREA", ["OK","Cancel"]);
+  				window.plugins.pinDialog.prompt("Enter App PIN to proceed", this.PINcallback, "SECURE AREA", ["OK","Cancel"]);
   			}else if(status !== 'false' && status !== 'true'){
   				pausecomp(1000);
-  				BleApi.app.setAppPIN();
+  				this.setAppPIN();
   			}
   	},
 
@@ -3529,39 +3529,39 @@
 
   // 	startScan: function()
   // 	{
-  // // 		BleApi.app.stopScan();
-  // 		BleApi.app.displayStatus('Starting scan...');
-  // 		BleApi.app.displayStatus('Scanning...');
+  // // 		this.stopScan();
+  // 		this.displayStatus('Starting scan...');
+  // 		this.displayStatus('Scanning...');
   // 		evothings.ble.startScan(
   // 			function(deviceInfo)
   // 			{
-  // 				if (BleApi.app.knownDevices[deviceInfo.address])
+  // 				if (this.knownDevices[deviceInfo.address])
   // 				{
   // 					return;
   // 				}
   // 				console.log('found device: ' + deviceInfo.name);
-  // 				BleApi.app.knownDevices[deviceInfo.address] = deviceInfo;
+  // 				this.knownDevices[deviceInfo.address] = deviceInfo;
   // /**
   // *				This is used if a specifically named device is desired
   // */
-  // // 				if (deviceInfo.name == 'bitlox-1' && !BleApi.app.connectee)
+  // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
   // // 				{
   // // 					console.log('Found bitlox');
   // // 					connectee = deviceInfo;
   // // 					pausecomp(5000);
-  // // 					BleApi.app.connect(deviceInfo.address);
+  // // 					this.connect(deviceInfo.address);
   // // 				}
   // 				if(platform == "android")
   // 				{
   // 					pausecomp(500);
   // 				}
   //
-  // 				BleApi.app.connect(deviceInfo.address);
+  // 				this.connect(deviceInfo.address);
   //
   // 			},
   // 			function(errorCode)
   // 			{
-  // 				BleApi.app.displayStatus('startScan error: ' + errorCode);
+  // 				this.displayStatus('startScan error: ' + errorCode);
   // 			});
   // 	},
 
@@ -3572,8 +3572,9 @@
   	//   errorCode: String
   	startScanNew: function()
   	{
-  		BleApi.app.stopScan();
-  		BleApi.app.displayStatus('Scanning...');
+      var appapi = this
+  		this.stopScan();
+  		this.displayStatus('Scanning...');
       // console.log(JSON.stringify(evothings.ble))
   		evothings.ble.startScan(
   			function(device)
@@ -3582,53 +3583,53 @@
   				// We filter out these values here.
   				if (device.rssi <= 0)
   				{
-  					BleApi.app.deviceFound(device, null);
+  					appapi.deviceFound(device, null);
   				}
   			},
   			function(errorCode)
   			{
           console.error("BITLOX BLE SCAN ERROR", errorCode)
   				// Report error.
-  				BleApi.app.deviceFound(null, errorCode);
+  				appapi.deviceFound(null, errorCode);
   			}
   		);
   	},
 
   // 	reconnect: function()
   // 	{
-  // 		BleApi.app.displayStatus('Reconnecting...');
+  // 		this.displayStatus('Reconnecting...');
   // 		evothings.ble.startScan(
   // 			function(device)
   // 			{
   // 				console.log('found device: ' + device.name);
-  // 				BleApi.app.knownDevices[device.address] = device;
+  // 				this.knownDevices[device.address] = device;
   // /**
   // *				This is used if a specifically named device is desired
   // */
-  // // 				if (deviceInfo.name == 'bitlox-1' && !BleApi.app.connectee)
+  // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
   // // 				{
   // // 					console.log('Found bitlox');
   // // 					connectee = deviceInfo;
   // // 					pausecomp(5000);
-  // // 					BleApi.app.connect(deviceInfo.address);
+  // // 					this.connect(deviceInfo.address);
   // // 				}
   // 				if(platform == "android")
   // 				{
   // 					pausecomp(500);
   // 				}
   //
-  // 				BleApi.app.connect(device.address);
+  // 				this.connect(device.address);
   // 			},
   // 			function(errorCode)
   // 			{
-  // 				BleApi.app.displayStatus('reconnect: ' + errorCode);
+  // 				this.displayStatus('reconnect: ' + errorCode);
   // 			});
   // 	},
 
   	connect: function(address)
   	{
   		evothings.ble.stopScan();
-  		BleApi.app.displayStatus('Connecting...');
+  		this.displayStatus('Connecting...');
   		evothings.ble.connectToDevice(
   			address,
   			function(connectInfo)
@@ -3639,20 +3640,20 @@
   					{
   						pausecomp(500);
   					}
-  					BleApi.app.deviceHandle = connectInfo.deviceHandle;
-  					BleApi.app.getServices(connectInfo.deviceHandle);
+  					this.deviceHandle = connectInfo.deviceHandle;
+  					this.getServices(connectInfo.deviceHandle);
   // 					connectedDevices[address] = address;
   				}
   				else
   				{
-  					BleApi.app.displayStatus('Disconnected');
+  					this.displayStatus('Disconnected');
   					pausecomp(50);
-  					BleApi.app.connect(address);
+  					this.connect(address);
   				}
   			},
   			function(errorCode)
   			{
-  				BleApi.app.displayStatus('connect: ' + errorCode);
+  				this.displayStatus('connect: ' + errorCode);
   			});
   			// $('#list_wallets').attr('disabled',false);
   	},
@@ -3660,11 +3661,11 @@
   	/** Close all connected devices. */
   	closeConnectedDevices: function()
   	{
-  			$.each(BleApi.app.knownDevices, function(key, device)
+  			$.each(this.knownDevices, function(key, device)
   			{
-  				BleApi.app.deviceHandle && evothings.ble.close(BleApi.app.deviceHandle);
+  				this.deviceHandle && evothings.ble.close(this.deviceHandle);
   			});
-  		BleApi.app.knownDevices = {};
+  		this.knownDevices = {};
 
   	},
 
@@ -3685,10 +3686,10 @@
   // 	This function adds the parameters the write function needs
   	passToWrite: function(passedData)
   	{
-  		BleApi.app.bleWrite(
+  		this.bleWrite(
   			'writeCharacteristic',
-  			BleApi.app.deviceHandle,
-  			BleApi.app.characteristicWrite,
+  			this.deviceHandle,
+  			this.characteristicWrite,
   			passedData
   			);
   	},
@@ -3697,19 +3698,19 @@
   // 	This function adds the parameters the write function needs
   	writeDeviceName: function(newDeviceName)
   	{
-  // 		alert("name: "+BleApi.app.characteristicName);
-  // 		alert("write: "+BleApi.app.characteristicWrite);
+  // 		alert("name: "+this.characteristicName);
+  // 		alert("write: "+this.characteristicWrite);
 
-  // 		BleApi.app.write(
+  // 		this.write(
   // 			'writeDescriptor',
-  // 			BleApi.app.deviceHandle,
-  // 			BleApi.app.descriptorName,
+  // 			this.deviceHandle,
+  // 			this.descriptorName,
   // 			new Uint8Array([35,35,61,61]));
 
-  		BleApi.app.writeWithResults(
+  		this.writeWithResults(
   			'writeCharacteristic',
-  			BleApi.app.deviceHandle,
-  			BleApi.app.characteristicName,
+  			this.deviceHandle,
+  			this.characteristicName,
   			newDeviceName);
   	},
 
@@ -3763,8 +3764,8 @@
   		}
   		$('#myTab a[href="#ble_scan"]').tab('show');
   		$('#renameDeviceButton').attr('disabled',false);
-  		BleApi.app.onStopScanButton();
-  		BleApi.app.onStartScanButton();
+  		this.onStopScanButton();
+  		this.onStartScanButton();
   	},
 
   /**
@@ -3775,25 +3776,25 @@
   */
   	startReading: function(deviceHandle)
   	{
-  		BleApi.app.displayStatus('Enabling notifications...');
+  		this.displayStatus('Enabling notifications...');
 
   		var sD = '';
   		console.log('data at beginning: ' + sD);
 
   		// Turn notifications on.
-  		BleApi.app.bleWrite(
+  		this.bleWrite(
   			'writeDescriptor',
   			deviceHandle,
-  			BleApi.app.descriptorNotification,
+  			this.descriptorNotification,
   			new Uint8Array([1,0]));
 
   		// Start reading notifications.
   		evothings.ble.enableNotification(
   			deviceHandle,
-  			BleApi.app.characteristicRead,
+  			this.characteristicRead,
   			function(data)
   			{
-  				BleApi.app.displayStatus('Active');
+  				this.displayStatus('Active');
   				var buf = new Uint8Array(data);
   				for (var i = 0 ; i < buf.length; i++)
   				{
@@ -3805,7 +3806,7 @@
   				{
   					buf[i] = 0;
   				};
-  				BleApi.app.sendToProcess(sD);
+  				this.sendToProcess(sD);
   				sD = '';
   				if(platform == "android")
   				{
@@ -3815,9 +3816,9 @@
   			},
   			function(errorCode)
   			{
-  				BleApi.app.displayStatus('enableNotification error: ' + errorCode);
+  				this.displayStatus('enableNotification error: ' + errorCode);
   			});
-  		BleApi.app.displayStatus('Ready');
+  		this.displayStatus('Ready');
   	},
 
   /**
@@ -3862,7 +3863,7 @@
   			var dataToSendOut = incomingData;
   			incomingData = '';
   			dataReady = false;
-  			BleApi.app.finalPrepProcess(dataToSendOut);
+  			this.finalPrepProcess(dataToSendOut);
   		}
   	},
 
@@ -3895,7 +3896,7 @@
   */
   	getServices: function(deviceHandle)
   	{
-  		BleApi.app.displayStatus('Reading services...');
+  		this.displayStatus('Reading services...');
   // 		alert('deviceHandle: ' + deviceHandle);
   		evothings.ble.readAllServiceData(deviceHandle, function(services)
   		{
@@ -3910,15 +3911,15 @@
 
   					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
   					{
-  						BleApi.app.characteristicRead = characteristic.handle;
+  						this.characteristicRead = characteristic.handle;
   					}
   					else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
   					{
-  						BleApi.app.characteristicWrite = characteristic.handle;
+  						this.characteristicWrite = characteristic.handle;
   					}
   					else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
   					{
-  						BleApi.app.characteristicName = characteristic.handle;
+  						this.characteristicName = characteristic.handle;
   					}
 
   					for (var di in characteristic.descriptors)
@@ -3928,30 +3929,30 @@
   						if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
   							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
   						{
-  							BleApi.app.descriptorNotification = descriptor.handle;
+  							this.descriptorNotification = descriptor.handle;
   						}
   						if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
   							descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
   						{
-  							BleApi.app.descriptorName = descriptor.handle;
+  							this.descriptorName = descriptor.handle;
   						}
   					}
   				}
   			}
 
-  			if (BleApi.app.characteristicRead && BleApi.app.characteristicWrite && BleApi.app.descriptorNotification && BleApi.app.characteristicName && BleApi.app.descriptorName)
+  			if (this.characteristicRead && this.characteristicWrite && this.descriptorNotification && this.characteristicName && this.descriptorName)
   			{
   				console.log('RX/TX services found.');
-  				BleApi.app.startReading(deviceHandle);
+  				this.startReading(deviceHandle);
   			}
   			else
   			{
-  				BleApi.app.displayStatus('ERROR: RX/TX services not found!');
+  				this.displayStatus('ERROR: RX/TX services not found!');
   			}
   		},
   		function(errorCode)
   		{
-  			BleApi.app.displayStatus('readAllServiceData error: ' + errorCode);
+  			this.displayStatus('readAllServiceData error: ' + errorCode);
   		});
   	},
 
@@ -3970,9 +3971,9 @@
   		}, function(s){
   			s = s.replace(/bitcoin\:/g,'');
   			document.getElementById('receiver_address').value = s;
-  			BleApi.app.displayStatus('QR code scanned');
+  			this.displayStatus('QR code scanned');
   		}, function(){
-  			BleApi.app.displayStatus('Error scanning QR');
+  			this.displayStatus('Error scanning QR');
   		});
   	},
 
@@ -3989,25 +3990,25 @@
   // Called when Start Scan button is selected.
   onStartScanButton: function()
   {
-  	BleApi.app.closeConnectedDevices();
-  	BleApi.app.stopScan();
-  	BleApi.app.knownDevices = {};
-  	BleApi.app.startScanNew(BleApi.app.deviceFound);
-  	BleApi.app.displayStatus('Scanning...');
-  	BleApi.app.updateTimer = setInterval(BleApi.app.displayDeviceList, 1000);
-  	BleApi.app.displayDeviceList;
+  	this.closeConnectedDevices();
+  	this.stopScan();
+  	this.knownDevices = {};
+  	this.startScanNew(this.deviceFound);
+  	this.displayStatus('Scanning...');
+  	this.updateTimer = setInterval(this.displayDeviceList, 1000);
+  	this.displayDeviceList;
   },
 
   // Called when Stop Scan button is selected.
   onStopScanButton: function()
   {
-  	BleApi.app.closeConnectedDevices();
-  	BleApi.app.stopScan();
+  	this.closeConnectedDevices();
+  	this.stopScan();
 
-  	BleApi.app.knownDevices = {};
-  	BleApi.app.displayStatus('Scan stopped');
-  	BleApi.app.displayDeviceList();
-  	clearInterval(BleApi.app.updateTimer);
+  	this.knownDevices = {};
+  	this.displayStatus('Scan stopped');
+  	this.displayDeviceList();
+  	clearInterval(this.updateTimer);
   },
 
   // Called when a device is found.
@@ -4019,14 +4020,14 @@
   		// inactive devices).
   		device.timeStamp = Date.now();
   		// Insert the device into table of found devices.
-  		BleApi.app.knownDevices[device.address] = device;
+  		this.knownDevices[device.address] = device;
       //this next line goes nuts in logcat. use wisely
-      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify(BleApi.app.knownDevices));
+      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify(this.knownDevices));
 
   	}
   	else if (errorCode)
   	{
-  		BleApi.app.displayStatusScanner('Scan Error: ' + errorCode);
+  		this.displayStatusScanner('Scan Error: ' + errorCode);
   	}
   },
 
@@ -4037,7 +4038,7 @@
   	$('#found-devices').empty();
   	var timeNow = Date.now();
 
-  	$.each(BleApi.app.knownDevices, function(key, device)
+  	$.each(this.knownDevices, function(key, device)
   	{
   		// Only show devices that are updated during the last 10 seconds.
   		if (device.timeStamp + 10000 > timeNow)
@@ -4088,7 +4089,6 @@
   // 		$('#myTab a[href="#bip32"]').tab('show');
   // 	}
 
-BleApi.app.initialize();
   /**
    * Called when HTML page has been loaded.
    */

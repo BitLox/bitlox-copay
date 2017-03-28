@@ -7,42 +7,48 @@
     StatusCtrl.$inject = ['$scope', 'hidapi', 'WalletStatus', 'bleapi'];
 
     function StatusCtrl($scope, hidapi, WalletStatus, bleapi) {
-        $scope.native = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
-        var api = $scope.native ? bleapi : hidapi;
-
-        $scope.bitlox = {};
-        $scope.wallet = {};
-
-        if($scope.native) {
-
-          $scope.knownDevices = bleapi.app.knownDevices;
-          $scope.$watch('knownDevices', function(x) {
-              console.warn(x)
-              console.warn($scope.knownDevices)
-          });
-          $scope.connectBle = function(address) {
-            api.app.connect(address)
-          }
-          $scope.bleREady = bleapi.app.bleReady;
-          $scope.$watch('bleReady', function(ready) {
-            if(ready) {
-              api.app.startScanNew();
-            }
-          });
-        }
-        $scope.bitlox = {
+      var sc = this;
+        sc.bitlox = {
+            isNative: document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1,
+            bleReady: false,
+            knownDevices: {},
             connectAttempted: false,
             connected: false,
             status: "No Bitlox",
             alertClass: "danger"
         };
 
-        $scope.wallet = {
+        sc.wallet = {
             status: "No Wallet",
             alertClass: "warning"
         };
+        var api = hidapi;
+        if(sc.bitlox.isNative) {
+          /*
+          "{"20:C3:8F:B5:DD:9C":{"address":"20:C3:8F:B5:DD:9C","rssi":-66,"name":"BITLOX","scanRecord":"AgEGBQLw/7D/Cv8AAP////9kAP8HCUJJVExPWAUSCAAQAAIKAAUSCAAQAAIKAAAAAAAAAAAAAAAAAAAAAAA=","advertisementData":{"kCBAdvDataManufacturerData":"AAD/////ZAD/","kCBAdvDataLocalName":"BITLOX","kCBAdvDataTxPowerLevel":0,"kCBAdvDataServiceUUIDs":["0000fff0-0000-1000-8000-00805f9b34fb","0000ffb0-0000-1000-8000-00805f9b34fb"]},"timeStamp":1490684995161}}"
+          */
 
-        $scope.refreshBitlox = function() {
+          api = bleapi;
+          api.app.initialize();
+          var intv = setInterval(function() {
+            sc.bitlox.bleReady = api.app.bleReady;
+            if(api.app.bleReady) {
+              clearInterval(intv)
+              api.app.startScanNew();
+            }
+          },1000)
+          var intv2 = setInterval(function() {
+            sc.bitlox.knownDevices = api.app.knownDevices;
+          },1000)
+          sc.connectBle = function(address) {
+            // api.app.connect(address)
+            clearInterval(intv2)
+          }
+        }
+
+
+
+        sc.refreshBitlox = function() {
             api.ping();
         };
 
@@ -50,74 +56,74 @@
             console.warn(hidstatus)
             switch(hidstatus) {
             case api.STATUS_CONNECTED:
-                $scope.bitlox.connectAttempted = true;
-                $scope.bitlox.connected = true;
-                $scope.bitlox.status = "Bitlox connected";
-                $scope.bitlox.alertClass = "success";
-                $scope.bitlox.glyph = "glyphicon-ok";
+                sc.bitlox.connectAttempted = true;
+                sc.bitlox.connected = true;
+                sc.bitlox.status = "Bitlox connected";
+                sc.bitlox.alertClass = "success";
+                sc.bitlox.glyph = "glyphicon-ok";
                 break;
             case api.STATUS_CONNECTING:
-                $scope.bitlox.connectAttempted = true;
-                $scope.bitlox.status = "Bitlox connecting";
-                $scope.bitlox.alertClass = "success";
-                $scope.bitlox.glyph = "glyphicon-refresh";
+                sc.bitlox.connectAttempted = true;
+                sc.bitlox.status = "Bitlox connecting";
+                sc.bitlox.alertClass = "success";
+                sc.bitlox.glyph = "glyphicon-refresh";
                 break;
             case api.STATUS_DISCONNECTED:
                 console.warn("DISCONNECTED");
-                $scope.bitlox.connected = false;
-                $scope.bitlox.status = "Bitlox disconnected!";
-                $scope.bitlox.alertClass = "danger";
-                $scope.bitlox.glyph = "glyphicon-remove";
+                sc.bitlox.connected = false;
+                sc.bitlox.status = "Bitlox disconnected!";
+                sc.bitlox.alertClass = "danger";
+                sc.bitlox.glyph = "glyphicon-remove";
                 break;
             case api.STATUS_WRITING:
-                $scope.bitlox.connectAttempted = true;
-                $scope.bitlox.connected = true;
-                $scope.bitlox.status = "Bitlox writing";
-                $scope.bitlox.alertClass = "info";
-                $scope.bitlox.glyph = "glyphicon-upload";
+                sc.bitlox.connectAttempted = true;
+                sc.bitlox.connected = true;
+                sc.bitlox.status = "Bitlox writing";
+                sc.bitlox.alertClass = "info";
+                sc.bitlox.glyph = "glyphicon-upload";
                 break;
             case api.STATUS_READING:
-                $scope.bitlox.connectAttempted = true;
-                $scope.bitlox.connected = true;
-                $scope.bitlox.status = "Bitlox reading";
-                $scope.bitlox.alertClass = "info";
-                $scope.bitlox.glyph = "glyphicon-download";
+                sc.bitlox.connectAttempted = true;
+                sc.bitlox.connected = true;
+                sc.bitlox.status = "Bitlox reading";
+                sc.bitlox.alertClass = "info";
+                sc.bitlox.glyph = "glyphicon-download";
                 break;
             default:
-                $scope.bitlox.connected = false;
-                $scope.bitlox.status = null;
+                sc.bitlox.connected = false;
+                sc.bitlox.status = null;
             }
         });
 
         WalletStatus.$watch('status', function(walletstatus) {
             switch(walletstatus) {
             case WalletStatus.STATUS_LOADING:
-                $scope.wallet.status = "Loading wallet";
-                $scope.wallet.alertClass = "info";
-                $scope.wallet.glyph = "glyphicon-download";
+                sc.wallet.status = "Loading wallet";
+                sc.wallet.alertClass = "info";
+                sc.wallet.glyph = "glyphicon-download";
                 break;
             case WalletStatus.STATUS_LOADING_UNSPENT:
-                $scope.wallet.status = "Finding unspent outputs";
-                $scope.wallet.alertClass = "info";
-                $scope.wallet.glyph = "glyphicon-cloud-download";
+                sc.wallet.status = "Finding unspent outputs";
+                sc.wallet.alertClass = "info";
+                sc.wallet.glyph = "glyphicon-cloud-download";
                 break;
             case WalletStatus.STATUS_LOADING_TRANSACTIONS:
-                $scope.wallet.status = "Finding transactions";
-                $scope.wallet.alertClass = "info";
-                $scope.wallet.glyph = "glyphicon-cloud-download";
+                sc.wallet.status = "Finding transactions";
+                sc.wallet.alertClass = "info";
+                sc.wallet.glyph = "glyphicon-cloud-download";
                 break;
             case WalletStatus.STATUS_SENDING:
-                $scope.wallet.status = "Wallet sending";
-                $scope.wallet.alertClass = "info";
-                $scope.wallet.glyph = "glyphicon-log-out";
+                sc.wallet.status = "Wallet sending";
+                sc.wallet.alertClass = "info";
+                sc.wallet.glyph = "glyphicon-log-out";
                 break;
             case WalletStatus.STATUS_SIGNING:
-                $scope.wallet.status = "Wallet signing";
-                $scope.wallet.alertClass = "info";
-                $scope.wallet.glyph = "glyphicon-pencil";
+                sc.wallet.status = "Wallet signing";
+                sc.wallet.alertClass = "info";
+                sc.wallet.glyph = "glyphicon-pencil";
                 break;
             default:
-                $scope.wallet.status = null;
+                sc.wallet.status = null;
             }
         });
 

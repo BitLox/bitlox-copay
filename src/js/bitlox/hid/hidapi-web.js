@@ -43,10 +43,10 @@
         this.$scope = $rootScope.$new();
         this.$scope.status = HidAPI.STATUS_DISCONNECTED;
     }
-    var app = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
+    var isNative = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
     // for now just do not load if we are in chrome app
-    if((chrome && chrome.hid) || app) {
+    if((chrome && chrome.hid) || isNative) {
       console.log('not loading web hid')
       return false;
     }
