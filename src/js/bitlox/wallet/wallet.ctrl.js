@@ -6,7 +6,7 @@
 
     WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidweb', 'hidchrome', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi', 'platformInfo'];
 
-    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
+    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidweb, hidchrome, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
         var vm = this;
         var api = hidweb;
         if (platformInfo.isChromeApp) {
