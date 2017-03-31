@@ -49,10 +49,13 @@
 
         api.$scope.$watch('knownDevicesList', function(knownDevices) {
           sc.bitlox.knownDevices = knownDevices;
-          try {
-            sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
-          } catch(e) {
-            console.log("I think Cordova might have down syndrome")
+          if(knownDevices) {
+            try {
+              sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
+            } catch(e) {
+              console.log("I think Cordova might have down syndrome")
+              console.log(e)
+            }
           }
         })
 
