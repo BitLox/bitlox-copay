@@ -13,8 +13,19 @@
         this.$interval = $interval;
         this.$scope = $rootScope.$new();
         this.$scope.status = BleApi.STATUS_DISCONNECTED;
+        this.$scope.knownDevicesList = {}
         this.deviceCommands = hidCommands;
+
+        // Handles to characteristics and descriptor for reading and
+      	// writing data from/to the Arduino using the BLE shield.
+      	this.characteristicRead = null;
+      	this.characteristicWrite = null;
+      	this.descriptorNotification = null;
+      	this.pinTheFirst = 0;
+      	this.pinFirstDecline = 0;
+      	this.characteristicName = null;
 		}
+    BleApi.STATUS_SCANNING     = BleApi.prototype.STATUS_SCANNING = "scanning";
     BleApi.STATUS_DISCONNECTED     = BleApi.prototype.STATUS_DISCONNECTED = "disconnected";
     BleApi.STATUS_CONNECTED        = BleApi.prototype.STATUS_CONNECTED = "connected";
     BleApi.STATUS_CONNECTING       = BleApi.prototype.STATUS_CONNECTING = "connecting";
@@ -146,6 +157,837 @@
   *	Utility functions END
   */
 
+      BleApi.prototype.initialize = function() {
+        var bleapi = this
+    		document.addEventListener(
+    			'deviceready',
+          function() {
+            platform = window.device.platform.toLowerCase()
+            if(platform === 'android') {
+              bleapi.$scope.bleReady = true;
+            } else {
+              evothings.scriptsLoaded(function() {
+                bleapi.$scope.bleReady = true;
+              })
+            }
+          },false);
+    	}
+
+
+    	BleApi.prototype.displayStatus = function(status)
+    	{
+    		console.log('Status: '+status);
+    	}
+      BleApi.prototype.getServices = function(deviceHandle) {
+        var bleapi = this
+    		bleapi.displayStatus('Reading services...');
+        // 		alert('deviceHandle: ' + deviceHandle);
+    		evothings.ble.readAllServiceData(deviceHandle, function(services)
+    		{
+    			// Find handles for characteristics and descriptor needed.
+    			for (var si in services)
+    			{
+    				var service = services[si];
+            // 				alert(service);
+    				for (var ci in service.characteristics)
+    				{
+    					var characteristic = service.characteristics[ci];
+
+    					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
+    					{
+    						bleapi.characteristicRead = characteristic.handle;
+    					}
+    					else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
+    					{
+    						bleapi.characteristicWrite = characteristic.handle;
+    					}
+    					else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
+    					{
+    						bleapi.characteristicName = characteristic.handle;
+    					}
+
+    					for (var di in characteristic.descriptors)
+    					{
+    						var descriptor = characteristic.descriptors[di];
+
+    						if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
+    							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
+    						{
+    							bleapi.descriptorNotification = descriptor.handle;
+    						}
+    						if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
+    							descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
+    						{
+    							bleapi.descriptorName = descriptor.handle;
+    						}
+    					}
+    				}
+    			}
+
+    			if (bleapi.characteristicRead && bleapi.characteristicWrite && bleapi.descriptorNotification && bleapi.characteristicName && bleapi.descriptorName)
+    			{
+    				console.log('RX/TX services found.');
+            bleapi.displayStatus('RX/TX services found!');
+    				bleapi.api.startReading(deviceHandle);
+    			}
+    			else
+    			{
+    				bleapi.displayStatus('ERROR: RX/TX services not found!');
+    			}
+    		},
+    		function(errorCode)
+    		{
+    			bleapi.displayStatus('readAllServiceData error: ' + errorCode);
+    		});
+    	}
+      BleApi.prototype.listWallets = function() {
+        return this.write(this.deviceCommands.list_wallets);
+      }
+
+      BleApi.prototype.startScanNew = function() {
+        var bleapi = this
+    	  evothings.ble.stopScan();
+    		this.displayStatus('Scanning...');
+    		evothings.ble.startScan(
+    			function(device)
+    			{
+    				// Report success. Sometimes an RSSI of +127 is reported.
+    				// We filter out these values here.
+    				if (device.rssi <= 0)
+    				{
+    					bleapi.deviceFound(device, null);
+    				}
+    			},
+    			function(errorCode)
+    			{
+            console.error("BITLOX BLE SCAN ERROR", errorCode)
+    				// Report error.
+    				bleapi.deviceFound(null, errorCode);
+    			}
+    		);
+    	}
+      BleApi.prototype.deviceFound = function(device, errorCode)  {
+      	if (device)
+      	{
+      		// Set timestamp for device (this is used to remove
+      		// inactive devices).
+      		device.timeStamp = Date.now();
+      		// Insert the device into table of found devices.
+          var bleapi = this
+          this.$scope.$apply(function() {
+            bleapi.$scope.knownDevicesList[device.address] = device;
+            //this next line goes nuts in logcat. use wisely
+            // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( bleapi.$scope.knownDevicesList[device.address].address));
+          })
+
+      	}
+      	else if (errorCode)
+      	{
+      		this.displayStatus('Scan Error: ' + errorCode);
+      	}
+      }
+      BleApi.prototype.connect = function(address)	{
+        var bleapi = this
+    		evothings.ble.stopScan();
+    		this.displayStatus('Connecting...');
+    		evothings.ble.connect(
+    			address,
+    			function(connectInfo)
+    			{
+    				if (connectInfo.state == 2) // Connected
+    				{
+    					bleapi.displayStatus('Connected');
+    					if(platform == "android")
+    					{
+                console.warn('waiting for android to think')
+    						pausecomp(1000);
+    					}
+    					bleapi.app.deviceHandle = connectInfo.deviceHandle;
+    					bleapi.app.getServices(connectInfo.deviceHandle);
+    // 					connectedDevices[address] = address;
+    				}
+    				else
+    				{
+    					bleapi.displayStatus('Disconnected');
+    					pausecomp(50);
+    					bleapi.connect(address);
+    				}
+    			},
+    			function(errorCode)
+    			{
+    				bleapi.displayStatus('connect: ' + errorCode);
+    			});
+          this.listWallets();
+    	}
+      // old sliceAndWrite64, 'data' is a command constant
+      BleApi.prototype.write = function(data) {
+        if(this.$scope.status !== BleApi.STATUS_CONNECTED) {
+          // return if the device isn't currently idle
+          if(this.$scope.status == BleApi.STATUS_DISCONNECTED) {
+            return this.$q.reject(new Error("Device is not connected"))
+          }
+          return this.$q.reject(new Error("Device is busy"))
+        }
+        var chunkSize;
+        if(platform == "android")
+        {
+          chunkSize = 40;  // android
+          console.log('ChunkSize set to: ' + chunkSize);
+        }
+        else
+        {
+          chunkSize = 128;
+          console.log('ChunkSize set to: ' + chunkSize);
+        }
+
+        var thelength = data.length;
+        var iterations = Math.floor(thelength/chunkSize);
+        console.log('iterations : ' + iterations);
+        var remainder  = thelength%chunkSize;
+        console.log('remainder : ' + remainder);
+        var k = 0;
+        var m = 0;
+        var transData = [];
+
+        // 		chop the command up into k pieces
+        for(k = 0; k < iterations; k++)
+        {
+          transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
+          console.log("k " + k);
+        };
+
+        console.log("k out " + k);
+
+        // 		deal with the leftover, backfilling the frame with zeros
+        if(remainder != 0)
+        {
+          transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
+          for (m = remainder; m < chunkSize; m++)
+          {
+            transData[k] = transData[k].concat("0");
+          }
+          console.log("remainder " + transData[k]);
+
+          console.log("remainder length " + transData[k].length);
+        };
+
+        // 		The BLE writer takes ByteBuffer arrays
+        var ByteBuffer = dcodeIO.ByteBuffer;
+        var j = 0;
+        var parseLength = 0;
+        console.log("transData.length " + transData.length);
+        for (j = 0; j< transData.length; j++)
+        {
+          parseLength = transData[j].length
+
+          var bb = new ByteBuffer();
+          // 	console.log("utx length = " + parseLength);
+          var i;
+          for (i = 0; i < parseLength; i += 2) {
+            var value = transData[j].substring(i, i + 2);
+            // 	console.log("value = " + value);
+            var prefix = "0x";
+            var together = prefix.concat(value);
+            // 	console.log("together = " + together);
+            var result = parseInt(together);
+            // 	console.log("result = " + result);
+
+            bb.writeUint8(result);
+          }
+          bb.flip();
+
+          BleApi.app.passToWrite(bb);
+          if(platform == "android")
+          {
+            pausecomp(100);
+          }
+        }
+        return this.$q.resolve(transData.length);
+        // return deferred.promise;
+      };
+
+    /**
+     * Application object that holds data and functions used by the BleApi.app.
+     */
+
+    BleApi.prototype.app = {
+    // 	scanner part
+    	devices: {},
+    // 	ui: {},
+    	updateTimer: null,
+
+    	// Discovered devices.
+    	selectedDevice: {},
+
+    	// Reference to the device we are connecting to. Unused
+    // 	connectee: null,
+
+    	// Handle to the connected device.
+    	deviceHandle: null,
+
+
+
+
+    	hiddenWalletCallback: function (results)
+    	{
+    		if(results.buttonIndex == 1)
+    		{
+    // 			event.preventDefault();
+    			currentCommand = "loadWallet";
+    			directLoadWallet(results.input1);
+    			this.displayStatus('Loading wallet');
+
+    			window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    			document.getElementById("loaded_wallet_name").innerHTML = "<small><i>HIDDEN</i></small>";
+
+    		}
+    		if(results.buttonIndex == 2)
+    		{
+    			// Cancel clicked
+    		}
+    	},
+
+
+
+
+
+    	PINcallback: function (results)
+    	{
+    		if(results.buttonIndex == 1)
+    		{
+    			var PINvalue = window.localStorage['PINvalue'];
+    			// OK clicked, show input value
+    			if(results.input1 != PINvalue)
+    			{
+    				this.initialize();
+    			}else if(results.input1 === PINvalue){
+    				$("#theBody").removeClass('grell');
+    				$('#myTab a[href="#ble_scan"]').tab('show');
+    				$("#renameWallet").attr('disabled',true);
+    			}
+
+    		}
+    		if(results.buttonIndex == 2)
+    		{
+    			// Cancel clicked
+    			this.initialize();
+    		}
+    	},
+
+
+    	firstPINcache: function (resultsFirst)
+    	{
+    		if(resultsFirst.buttonIndex == 1)
+    		{
+    			this.pinTheFirst = resultsFirst.input1;
+    // 			alert(this.pinTheFirst);
+    			pausecomp(300);
+    			window.plugins.pinDialog.prompt("Verify your desired PIN", this.PINsetcallback, "RE-ENTER APP PIN", ["OK","Cancel"]);
+
+    		}else if(resultsFirst.buttonIndex == 2)
+    		{
+    // 		alert("You can later set a PIN in the extras menu");
+    			this.pinFirstDecline = 1;
+    			// Cancel clicked
+            	window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    			$("#theBody").removeClass('grell');
+    			$('#myTab a[href="#ble_scan"]').tab('show');
+    			$("#renameWallet").attr('disabled',true);
+    		}
+    	},
+
+    	PINsetcallback: function (results)
+    	{
+    		if(results.buttonIndex == 1)
+    		{
+    			if(results.input1 == this.pinTheFirst)
+    			{
+    				window.localStorage['PINvalue'] = results.input1;
+    				var PINvalue = window.localStorage['PINvalue'];
+    				window.plugins.toast.show('PIN set to: ' + PINvalue, 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    // 				alert('PIN set to: ' + PINvalue);
+    				window.localStorage['PINstatus'] = 'true';
+    				var PINstatus = window.localStorage['PINstatus'];
+    				globalPINstatus = 'true';
+    				$("#theBody").removeClass('grell');
+    				$('#myTab a[href="#ble_scan"]').tab('show');
+    				$("#renameWallet").attr('disabled',true);
+    			}else
+    			{
+    				window.plugins.toast.show('PINs don\'t match', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    				pausecomp(300);
+    				this.setAppPIN();
+    			}
+    		}
+    		if(results.buttonIndex == 2)
+    		{
+    			// Cancel clicked
+            	window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    			$("#theBody").removeClass('grell');
+    			$('#myTab a[href="#ble_scan"]').tab('show');
+    			$("#renameWallet").attr('disabled',true);
+    		}
+    	},
+
+    	showAppPIN: function()
+    	{
+    		alert('globalPINstatus' + globalPINstatus);
+    		var PINstatus = window.localStorage['PINstatus'];
+    		alert('PINstatus' + PINstatus);
+    	},
+
+
+    	setAppPIN: function()
+    	{
+    		window.plugins.pinDialog.prompt("Enter your desired PIN", this.firstPINcache, "SET APP PIN", ["OK","Cancel"]);
+    	},
+
+    	getPINstatus: function()
+    	{
+    		var PINstatus = window.localStorage['PINstatus'];
+    		return PINstatus;
+    	},
+
+
+    	getPIN: function (status)
+    	{
+
+    			if(status === 'true'){
+    				window.plugins.pinDialog.prompt("Enter App PIN to proceed", this.PINcallback, "SECURE AREA", ["OK","Cancel"]);
+    			}else if(status !== 'false' && status !== 'true'){
+    				pausecomp(1000);
+    				this.setAppPIN();
+    			}
+    	},
+
+
+
+
+
+
+    // 	startScan: function()
+    // 	{
+    // // 		this.stopScan();
+    // 		this.displayStatus('Starting scan...');
+    // 		this.displayStatus('Scanning...');
+    // 		evothings.ble.startScan(
+    // 			function(deviceInfo)
+    // 			{
+    // 				if (this.knownDevices[deviceInfo.address])
+    // 				{
+    // 					return;
+    // 				}
+    // 				console.log('found device: ' + deviceInfo.name);
+    // 				this.knownDevices[deviceInfo.address] = deviceInfo;
+    // /**
+    // *				This is used if a specifically named device is desired
+    // */
+    // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
+    // // 				{
+    // // 					console.log('Found bitlox');
+    // // 					connectee = deviceInfo;
+    // // 					pausecomp(5000);
+    // // 					this.connect(deviceInfo.address);
+    // // 				}
+    // 				if(platform == "android")
+    // 				{
+    // 					pausecomp(500);
+    // 				}
+    //
+    // 				this.connect(deviceInfo.address);
+    //
+    // 			},
+    // 			function(errorCode)
+    // 			{
+    // 				this.displayStatus('startScan error: ' + errorCode);
+    // 			});
+    // 	},
+
+    	// Start the scan. Call the callback function when a device is found.
+    	// Format:
+    	//   callbackFun(deviceInfo, errorCode)
+    	//   deviceInfo: address, rssi, name
+    	//   errorCode: String
+
+    // 	reconnect: function()
+    // 	{
+    // 		this.displayStatus('Reconnecting...');
+    // 		evothings.ble.startScan(
+    // 			function(device)
+    // 			{
+    // 				console.log('found device: ' + device.name);
+    // 				this.knownDevices[device.address] = device;
+    // /**
+    // *				This is used if a specifically named device is desired
+    // */
+    // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
+    // // 				{
+    // // 					console.log('Found bitlox');
+    // // 					connectee = deviceInfo;
+    // // 					pausecomp(5000);
+    // // 					this.connect(deviceInfo.address);
+    // // 				}
+    // 				if(platform == "android")
+    // 				{
+    // 					pausecomp(500);
+    // 				}
+    //
+    // 				this.connect(device.address);
+    // 			},
+    // 			function(errorCode)
+    // 			{
+    // 				this.displayStatus('reconnect: ' + errorCode);
+    // 			});
+    // 	},
+
+
+
+    	/** Close all connected devices. */
+    	closeConnectedDevices: function()
+    	{
+    			$.each(this.knownDevices, function(key, device)
+    			{
+    				this.deviceHandle && evothings.ble.close(this.deviceHandle);
+    			});
+    		this.knownDevices = {};
+
+    	},
+
+
+
+    /**
+    * 	Chops up the command/data to send into either 64 byte (iOS) or 20 byte (android) chunks,
+    * 	zero-fills out to the end of the current frame and transforms into a byte buffer for sending out via BLE
+    *   This command replaces the previously used "hidWriteRawData" and is aliased inside of "autoCannedTransaction" as it
+    *	replaces the functions of both of those.
+    *	As iOS and Android seem to have different tolerances for transmission speed, the blocksize and transmission delay
+    *	are broken out for each. It may be desirable in the settings of the app that these parameters could be "Tuned" to different handsets.
+    *	(My testbed is an old Huawei Android handset) - or possible dynamically set via a ping/echo check of connectivity speed.
+    *	data: hex encoded string
+    */
+
+
+    // 	This function adds the parameters the write function needs
+    	passToWrite: function(passedData)
+    	{
+    		this.bleWrite(
+    			'writeCharacteristic',
+    			this.deviceHandle,
+    			this.characteristicWrite,
+    			passedData
+    			);
+    	},
+
+
+    // 	This function adds the parameters the write function needs
+    	writeDeviceName: function(newDeviceName)
+    	{
+    // 		alert("name: "+this.characteristicName);
+    // 		alert("write: "+this.characteristicWrite);
+
+    // 		this.write(
+    // 			'writeDescriptor',
+    // 			this.deviceHandle,
+    // 			this.descriptorName,
+    // 			new Uint8Array([35,35,61,61]));
+
+    		this.writeWithResults(
+    			'writeCharacteristic',
+    			this.deviceHandle,
+    			this.characteristicName,
+    			newDeviceName);
+    	},
+
+
+
+    // 	Actual write function
+    	bleWrite: function(writeFunc, deviceHandle, handle, value)
+    	{
+    		if (handle)
+    		{
+    			evothings.ble[writeFunc](
+    				deviceHandle,
+    				handle,
+    				value,
+    				function()
+    				{
+    // 					alert(writeFunc + ': ' + handle + ' success.');
+    					console.log(writeFunc + ': ' + handle + ' success.');
+    				},
+    				function(errorCode)
+    				{
+    // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
+
+    					console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
+    				});
+    		}
+
+    	},
+
+    // 	Actual write function
+    	writeWithResults: function(writeFunc, deviceHandle, handle, value)
+    	{
+    		if (handle)
+    		{
+    			ble[writeFunc](
+    				deviceHandle,
+    				handle,
+    				value,
+    				function()
+    				{
+    					window.plugins.toast.show('Device renamed successfully', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    // 					alert(writeFunc + ': ' + handle + ' success.');
+    					console.log(writeFunc + ': ' + handle + ' success.');
+    				},
+    				function(errorCode)
+    				{
+    // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
+
+    					console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
+    				});
+    		}
+    		$('#myTab a[href="#ble_scan"]').tab('show');
+    		$('#renameDeviceButton').attr('disabled',false);
+    		this.onStopScanButton();
+    		this.onStartScanButton();
+    	},
+
+    /**
+    * 	Reads the datastream after subscribing to notifications.
+    * 	Bytes are read off one at a time and assembled into a frame which is then passed to
+    * 	be processed. The passed frame may not contain the whole message, which will be completed
+    * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
+    */
+    	startReading: function(deviceHandle)
+    	{
+    		this.displayStatus('Enabling notifications...');
+
+    		var sD = '';
+    		console.log('data at beginning: ' + sD);
+
+    		// Turn notifications on.
+    		this.bleWrite(
+    			'writeDescriptor',
+    			deviceHandle,
+    			this.descriptorNotification,
+    			new Uint8Array([1,0]));
+
+    		// Start reading notifications.
+    		evothings.ble.enableNotification(
+    			deviceHandle,
+    			this.characteristicRead,
+    			function(data)
+    			{
+    				this.displayStatus('Active');
+    				var buf = new Uint8Array(data);
+    				for (var i = 0 ; i < buf.length; i++)
+    				{
+    					sD = sD.concat(d2h(buf[i]).toString('hex'));
+    				};
+
+    				console.log('data semifinal: ' + sD);
+    				for (var i = 0 ; i < buf.length; i++)
+    				{
+    					buf[i] = 0;
+    				};
+    				this.sendToProcess(sD);
+    				sD = '';
+    				if(platform == "android")
+    				{
+    					pausecomp(10);
+    				}
+
+    			},
+    			function(errorCode)
+    			{
+    				this.displayStatus('enableNotification error: ' + errorCode);
+    			});
+    		this.displayStatus('Ready');
+    	},
+
+    /**
+    * 	Assembles whole message strings
+    * 	The raw data is going to be coming in in possible uncompleted parts.
+    * 	We will sniff for the 2323 and commence storing data from there.
+    * 	The payload size is grabbed from the first 2323 packet to determine when we are done and
+    * 	may send the received message onwards.
+    */
+    	sendToProcess: function(rawData)
+    	{
+    		console.log('data final: ' + rawData);
+    		var rawSize = rawData.length;
+    		console.log('rawSize: ' + rawSize);
+    		console.log('incomingData at top ' + incomingData);
+
+    		// Grab the incoming frame and add it to the global incomingData
+            // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
+    		if (rawData.match(/2323/) || dataReady == true)
+    		{
+    			console.log('or match ');
+    			incomingData = incomingData.concat(rawData);
+    			console.log('incomingData ' + incomingData);
+
+    // 			Find out how long the total message is. This must be stored globally as the
+    // 			sendToProcess routine is called repeatedly blanking local variables
+    			if (incomingData.match(/2323/))
+    			{
+    				console.log('header match');
+    				dataReady = true;
+    				var headerPosition = incomingData.search(2323)
+    				payloadSize = incomingData.substring(headerPosition + 8, headerPosition + 16)
+    				console.log('PayloadSize hex: ' + payloadSize);
+    				var decPayloadSize = parseInt(payloadSize, 16);
+    				console.log('decPayloadSize: ' + decPayloadSize);
+    				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+    			}
+    		}
+    // 		Once the incomingData has grown to the length declared, send it onwards.
+    		if(incomingData.length === ((decPayloadSize*2) + 16))
+    		{
+    			var dataToSendOut = incomingData;
+    			incomingData = '';
+    			dataReady = false;
+    			this.finalPrepProcess(dataToSendOut);
+    		}
+    	},
+
+    /**
+     *	Takes whole message strings and preps them for consumption by the processResults function
+    */
+    	finalPrepProcess: function(dataToProcess)
+    	{
+    			if (dataToProcess.match(/2323/)) {
+    				var headerPosition = dataToProcess.search(2323);
+    				var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
+    				document.getElementById("command").innerHTML = command;
+    				var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
+    				console.log('PayloadSize: ' + payloadSize2);
+    				var decPayloadSize = parseInt(payloadSize2, 16);
+    				console.log('decPayloadSize: ' + decPayloadSize);
+    				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+
+    				document.getElementById("payLoadSize").innerHTML = payloadSize2;
+    				var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
+    				document.getElementById("payload_HEX").innerHTML = payload;
+    				document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
+    				console.log('ready to process: ' + dataToProcess);
+    				processResults(command, payloadSize2, payload);
+    			}
+    	},
+
+    /**
+     * 	Opens reading & writing services on the BitLox device. The uuids are specific to the BitLox hardware
+    */
+
+
+    	openBrowser: function(url)
+    	{
+    		window.open(url, '_system', 'location=yes')
+    	},
+
+    	scanQR:	function()
+    	{
+    		cloudSky.zBar.scan(
+    		{
+    // 			camera: "back" // defaults to "back"
+    // 			flash: "auto", // defaults to "auto". See Quirks
+    			drawSight: false //defaults to true, create a red sight/line in the center of the scanner view.
+    		}, function(s){
+    			s = s.replace(/bitcoin\:/g,'');
+    			document.getElementById('receiver_address').value = s;
+    			this.displayStatus('QR code scanned');
+    		}, function(){
+    			this.displayStatus('Error scanning QR');
+    		});
+    	},
+
+
+
+
+
+    // Stop scanning for devices.
+    stopScan: function()
+    {
+    	evothings.ble.stopScan();
+    },
+
+    // Called when Start Scan button is selected.
+    onStartScanButton: function()
+    {
+    	this.closeConnectedDevices();
+    	this.stopScan();
+    	this.knownDevices = {};
+    	this.startScanNew(this.deviceFound);
+    	this.displayStatus('Scanning...');
+    	this.updateTimer = setInterval(this.displayDeviceList, 1000);
+    	this.displayDeviceList;
+    },
+
+    // Called when Stop Scan button is selected.
+    onStopScanButton: function()
+    {
+    	this.closeConnectedDevices();
+    	this.stopScan();
+
+    	this.knownDevices = {};
+    	this.displayStatus('Scan stopped');
+    	this.displayDeviceList();
+    	clearInterval(this.updateTimer);
+    },
+
+    // Called when a device is found.
+
+
+    // Display the device list.
+    displayDeviceList: function()
+    {
+    	// Clear device list.
+    	$('#found-devices').empty();
+    	var timeNow = Date.now();
+
+    	$.each(this.knownDevices, function(key, device)
+    	{
+    		// Only show devices that are updated during the last 10 seconds.
+    		if (device.timeStamp + 10000 > timeNow)
+    		{
+    			// Map the RSSI value to a width in percent for the indicator.
+    			var rssiWidth = 100; // Used when RSSI is zero or greater.
+    			if (device.rssi < -100) { rssiWidth = 0; }
+    			else if (device.rssi < 0) { rssiWidth = 100 + device.rssi; }
+
+    			// Create tag for device data.
+    			var element = $(
+    				'<li id="device_chosen" class="deviceSelection device-list" data-target="#bip32"  data-addr="'+ device.address +'" data-name="'+device.name+'">'
+    				+	'<span >'
+    				+	'<strong>' + device.name + '</strong><br />'
+    				// Do not show address on iOS since it can be confused
+    				// with an iBeacon UUID.
+    // 				+	(evothings.os.isIOS() ? '' : device.address + '<br />')
+    // 				+	(evothings.os.isIOS() ? device.address : device.address + '<br />')
+    				+	'<small><span class="left-label">SIGNAL STRENGTH  </small></span>&nbsp;<span class="right-signal">' +device.rssi + ' dB</span><br />'
+    				+ 	'<div style="background:rgb(225,0,0);height:20px;width:'
+    				+ 		rssiWidth*2 + '%;"></div>'
+    				+	'</span>'
+    				+ '</li>'
+    			);
+
+    			$('#found-devices').append(element);
+    		}
+    	});
+    },
+
+
+
+    // Display a status message
+    displayStatusScanner: function(message)
+    {
+    	// $('#scan-status').html(message);
+      console.error(message)
+    }
+
+
+    };
+    // End of app object.
 
 
   /////////////////////////////////////////////////
@@ -630,7 +1472,7 @@
 
   	function respondToOTPrequest()
   	{
-  		BleApi.app.displayStatus('OTP request');
+  		BleApi.displayStatus('OTP request');
 
   		window.plugins.pinDialog.promptClear("Enter OTP shown on BitLox", constructOTP, "OTP", ["CONFIRM","CANCEL"]);
 
@@ -678,7 +1520,7 @@
   			console.log("tempTXstring = " + tempTXstring);
   			BleApi.app.sliceAndWrite64(tempTXstring);
          }else if(results.buttonIndex == 2){
-  			BleApi.app.displayStatus('OTP canceled');
+  			BleApi.displayStatus('OTP canceled');
           	BleApi.app.sliceAndWrite64(BleApi.deviceCommands.otp_cancel);
 
           }
@@ -1019,7 +1861,7 @@
   	function onPromptNewWallet(results) {
   		if(results.buttonIndex == 1)
   		{
-  			BleApi.app.displayStatus('Creating wallet');
+  			BleApi.displayStatus('Creating wallet');
   			window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   			constructNewWallet(results.input1);
   		}else if(results.buttonIndex == 2)
@@ -1306,7 +2148,7 @@
   	}
 
       function constructRenameWallet(nameToUse) {
-  // 		BleApi.app.displayStatus('Renaming wallet');
+  // 		BleApi.displayStatus('Renaming wallet');
 
           var ProtoBuf = dcodeIO.ProtoBuf;
           var ByteBuffer = dcodeIO.ByteBuffer;
@@ -1588,9 +2430,9 @@
   			document.getElementById("device_signed_transaction").value = tempTXstring;
   			$("#sign_transaction_with_device").attr('disabled',false);
   			console.log("READY");
-  			BleApi.app.displayStatus('About to set change');
+  			BleApi.displayStatus('About to set change');
           	setChangeAddress(usechange);
-  			BleApi.app.displayStatus('Ready to sign');
+  			BleApi.displayStatus('Ready to sign');
 
   		}
 
@@ -1680,7 +2522,7 @@
 
           var magic = "2323"
           tempTXstring = magic.concat(tempTXstring);
-          BleApi.app.displayStatus('Setting change address');
+          BleApi.displayStatus('Setting change address');
 
           BleApi.app.sliceAndWrite64(tempTXstring);
       }
@@ -1788,7 +2630,7 @@
   					$('.wallet_row').attr('disabled',false);
                       $("#newWalletButton").attr('disabled',false);
 
-                      BleApi.app.displayStatus('Wallets listed');
+                      BleApi.displayStatus('Wallets listed');
                       currentCommand = '';
                       break;
 
@@ -1800,7 +2642,7 @@
                   case "34": // success
                   	switch (currentCommand) {
   						case "deleteWallet":
-  							BleApi.app.displayStatus('Wallet deleted');
+  							BleApi.displayStatus('Wallet deleted');
   							$('#myTab a[href="#bip32"]').tab('show');
 
   							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
@@ -1808,11 +2650,11 @@
 
   							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
 
-  							BleApi.app.displayStatus('Listing wallets');
+  							BleApi.displayStatus('Listing wallets');
   							currentCommand = '';
   							break;
   						case "renameWallet":
-  							BleApi.app.displayStatus('Wallet renamed');
+  							BleApi.displayStatus('Wallet renamed');
   							$('#myTab a[href="#bip32"]').tab('show');
 
   							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
@@ -1821,7 +2663,7 @@
   							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
           					$('#renameWallet').attr('disabled',false);
 
-  							BleApi.app.displayStatus('Listing wallets');
+  							BleApi.displayStatus('Listing wallets');
   							currentCommand = '';
   							break;
   						case "newWallet":
@@ -1831,13 +2673,13 @@
   							pausecomp(15000);
   							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
 
-  							BleApi.app.displayStatus('Listing refreshed');
+  							BleApi.displayStatus('Listing refreshed');
 
   							currentCommand = '';
   							break;
   						case "formatDevice":
   							window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  							BleApi.app.displayStatus('Ready');
+  							BleApi.displayStatus('Ready');
   							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   							$('#myTab a[href="#bip32"]').tab('show');
   							currentCommand = '';
@@ -1854,7 +2696,7 @@
   							document.getElementById("device_signed_transaction").value = '';
   							$("#rawTransactionStatus").addClass('hidden');
   							$('#myTab a[href="#walletDetail"]').tab('show');
-  							BleApi.app.displayStatus('Waiting for data');
+  							BleApi.displayStatus('Waiting for data');
               				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
                       		$("#renameWallet").attr('disabled',false);
                       		$("#newWalletButton").attr('disabled',false);
@@ -1871,7 +2713,7 @@
   // 							currentCommand = '';
   							break;
   						default:
-  							BleApi.app.displayStatus('Success');
+  							BleApi.displayStatus('Success');
   							break;
                   	}
 
@@ -1886,7 +2728,7 @@
 
                   	switch (currentCommand) {
   						case "deleteWallet":
-  // 							BleApi.app.displayStatus('Wallet deleted');
+  // 							BleApi.displayStatus('Wallet deleted');
   // 							$('#myTab a[href="#bip32"]').tab('show');
   //
   // 							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
@@ -1894,11 +2736,11 @@
   //
   // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
-  // 							BleApi.app.displayStatus('Listing wallets');
+  // 							BleApi.displayStatus('Listing wallets');
   							currentCommand = '';
   							break;
   						case "renameWallet":
-  // 							BleApi.app.displayStatus('Wallet renamed');
+  // 							BleApi.displayStatus('Wallet renamed');
   // 							$('#myTab a[href="#bip32"]').tab('show');
   //
   // 							window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
@@ -1907,7 +2749,7 @@
   // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //         					$('#renameWallet').attr('disabled',false);
   //
-  // 							BleApi.app.displayStatus('Listing wallets');
+  // 							BleApi.displayStatus('Listing wallets');
   							currentCommand = '';
   							break;
   						case "newWallet":
@@ -1917,13 +2759,13 @@
   // 							pausecomp(15000);
   // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
-  // 							BleApi.app.displayStatus('Listing refreshed');
+  // 							BleApi.displayStatus('Listing refreshed');
   //
   							currentCommand = '';
   							break;
   						case "formatDevice":
   // 							window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  // 							BleApi.app.displayStatus('Ready');
+  // 							BleApi.displayStatus('Ready');
   // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   // 							$('#myTab a[href="#bip32"]').tab('show');
   							currentCommand = '';
@@ -1937,7 +2779,7 @@
   							currentCommand = '';
   							break;
   						default:
-  // 							BleApi.app.displayStatus('Error');
+  // 							BleApi.displayStatus('Error');
   							break;
                   	}
 
@@ -1963,7 +2805,7 @@
                       break;
 
                   case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
-  					BleApi.app.displayStatus('OTP');
+  					BleApi.displayStatus('OTP');
   					respondToOTPrequest();
                       break;
 
@@ -1974,7 +2816,7 @@
 
   					var source_key = $("#bip32_source_key").val();
   					useNewKey(source_key);
-  					BleApi.app.displayStatus('xpub received');
+  					BleApi.displayStatus('xpub received');
   // 					$("#sendButton").attr('disabled',false);
   // 					$("#receiveButton").attr('disabled',false);
   // 					$("#signMessageButton").attr('disabled',false);
@@ -2010,11 +2852,11 @@
                       }
   // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
   //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
-                      BleApi.app.displayStatus('Signature received');
+                      BleApi.displayStatus('Signature received');
 
                       if(currentCommand == 'signAndSend')
                       {
-                          BleApi.app.displayStatus('Submitting...');
+                          BleApi.displayStatus('Submitting...');
                       	rawSubmitAuto(unSignedTransaction);
                       }else
                       {
@@ -2443,7 +3285,7 @@
       var checkReceived = function(chain, index, addr, callback) {
           return function(data, textStatus, jqXHR) {
           	console.log('check if EVER received funds on '+chain+' : '  + data);
-          	BleApi.app.displayStatus('Checking balances');
+          	BleApi.displayStatus('Checking balances');
               if (parseInt(data) > 0) {
                   var newlast = Math.max(index + GAP + 1, lastone[chain]);
   //                 alert("newlast " + newlast);
@@ -2492,7 +3334,7 @@
           			}
                   }
                   if (index === lastone[chain] - 1) {
-  					BleApi.app.displayStatus('Finished balances');
+  					BleApi.displayStatus('Finished balances');
   					$("#sendButton").attr('disabled',false);
   					$("#receiveButton").attr('disabled',false);
   					$("#signMessageButton").attr('disabled',false);
@@ -2824,7 +3666,7 @@
           var source_key = $("#bip32_source_key").val();
           useNewKey(source_key);
   //         console.log('balances done');
-  //      BleApi.app.displayStatus('Balances updated');
+  //      BleApi.displayStatus('Balances updated');
       };
 
 
@@ -3048,7 +3890,7 @@
   	{
   		var transactionHistoryMatrix = [];
   		document.getElementById("transactionDisplayList").innerHTML = '';
-  		BleApi.app.displayStatus('Getting Transactions');
+  		BleApi.displayStatus('Getting Transactions');
   		var numAddresses = addressesMatrix.length;
   // 		alert(numAddresses);
   		var queryString = serverURLio;
@@ -3175,7 +4017,7 @@
   					});
   				}
   			);
-  		BleApi.app.displayStatus('Ready');
+  		BleApi.displayStatus('Ready');
   		$('#transactionHistoryButton').attr('disabled',false);
   	};
 
@@ -3201,7 +4043,7 @@
 
   	var rawSubmitAuto = function(txData)
   	{
-  		BleApi.app.displayStatus('Submitting..');
+  		BleApi.displayStatus('Submitting..');
   // 		alert(txData);
   // 		$("#rawTransactionStatus2").addClass('hidden');
   // 		var thisbtn = "#signAndSendStandard";
@@ -3224,11 +4066,11 @@
   			},
   			complete: function(data, status) {
   				$("#rawTransactionStatus2").fadeOut().fadeIn();
-  				BleApi.app.displayStatus('Ready');
+  				BleApi.displayStatus('Ready');
   			}
   		});
   		document.getElementById('payment_title').innerHTML =  '';
-  		BleApi.app.displayStatus('Refreshing balances...');
+  		BleApi.displayStatus('Refreshing balances...');
   		onUpdateSourceKey();
 
   		currentCommand = '';
@@ -3244,843 +4086,7 @@
   		}
   	}
 
-    BleApi.prototype.listWallets = function() {
-      return this.write(this.deviceCommands.list_wallets);
-    }
 
-    BleApi.prototype.write = function(data) // old sliceAndWrite64, 'data' is a command constant
-    {
-      if(this.$scope.status !== BleApi.STATUS_CONNECTED) {
-        // return if the device isn't currently idle
-        if(this.$scope.status == BleApi.STATUS_DISCONNECTED) {
-          return this.$q.reject(new Error("Device is not connected"))
-        }
-        return this.$q.reject(new Error("Device is busy"))
-      }
-      var chunkSize;
-      if(platform == "android")
-      {
-        chunkSize = 40;  // android
-        console.log('ChunkSize set to: ' + chunkSize);
-      }
-      else
-      {
-        chunkSize = 128;
-        console.log('ChunkSize set to: ' + chunkSize);
-      }
-
-      var thelength = data.length;
-      var iterations = Math.floor(thelength/chunkSize);
-      console.log('iterations : ' + iterations);
-      var remainder  = thelength%chunkSize;
-      console.log('remainder : ' + remainder);
-      var k = 0;
-      var m = 0;
-      var transData = [];
-
-    // 		chop the command up into k pieces
-      for(k = 0; k < iterations; k++)
-      {
-        transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
-        console.log("k " + k);
-      };
-
-      console.log("k out " + k);
-
-    // 		deal with the leftover, backfilling the frame with zeros
-      if(remainder != 0)
-      {
-        transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
-        for (m = remainder; m < chunkSize; m++)
-        {
-          transData[k] = transData[k].concat("0");
-        }
-        console.log("remainder " + transData[k]);
-
-        console.log("remainder length " + transData[k].length);
-      };
-
-    // 		The BLE writer takes ByteBuffer arrays
-      var ByteBuffer = dcodeIO.ByteBuffer;
-      var j = 0;
-      var parseLength = 0;
-      console.log("transData.length " + transData.length);
-      for (j = 0; j< transData.length; j++)
-      {
-        parseLength = transData[j].length
-
-        var bb = new ByteBuffer();
-      // 	console.log("utx length = " + parseLength);
-        var i;
-        for (i = 0; i < parseLength; i += 2) {
-          var value = transData[j].substring(i, i + 2);
-      // 	console.log("value = " + value);
-          var prefix = "0x";
-          var together = prefix.concat(value);
-      // 	console.log("together = " + together);
-          var result = parseInt(together);
-      // 	console.log("result = " + result);
-
-          bb.writeUint8(result);
-        }
-        bb.flip();
-
-        BleApi.app.passToWrite(bb);
-        if(platform == "android")
-        {
-          pausecomp(100);
-        }
-      }
-      return this.$q.resolve(transData.length);
-      // return deferred.promise;
-    };
-
-  /**
-   * Application object that holds data and functions used by the BleApi.app.
-   */
-
-  BleApi.prototype.app = {
-  // 	scanner part
-  	devices: {},
-  // 	ui: {},
-  	updateTimer: null,
-
-  	// Discovered devices.
-  	knownDevices: {},
-  	selectedDevice: {},
-    bleReady : false,
-
-  	// Reference to the device we are connecting to. Unused
-  // 	connectee: null,
-
-  	// Handle to the connected device.
-  	deviceHandle: null,
-
-  	// Handles to characteristics and descriptor for reading and
-  	// writing data from/to the Arduino using the BLE shield.
-  	characteristicRead: null,
-  	characteristicWrite: null,
-  	descriptorNotification: null,
-  	pinTheFirst: 0,
-  	pinFirstDecline: 0,
-  	characteristicName: null,
-    currentStatuString: null,
-
-  	displayStatus: function(status)
-  	{
-  		// if(document.getElementById('status').innerHTML == status)
-  		// 	return;
-      this.currentStatusString = status;
-  		console.log('Status: '+status);
-  		// document.getElementById('status').innerHTML = status
-  	},
-
-
-
-  	initialize: function()
-  	{
-      var appapi = this
-  		document.addEventListener(
-  			'deviceready',
-  			function() {
-          // BleApi.app.startScanNew(BleApi.app.deviceFound);
-          appapi.bleReady = true;
-  			},
-  			false);
-  	},
-
-
-  	hiddenWalletCallback: function (results)
-  	{
-  		if(results.buttonIndex == 1)
-  		{
-  // 			event.preventDefault();
-  			currentCommand = "loadWallet";
-  			directLoadWallet(results.input1);
-  			this.displayStatus('Loading wallet');
-
-  			window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  			document.getElementById("loaded_wallet_name").innerHTML = "<small><i>HIDDEN</i></small>";
-
-  		}
-  		if(results.buttonIndex == 2)
-  		{
-  			// Cancel clicked
-  		}
-  	},
-
-
-
-
-
-  	PINcallback: function (results)
-  	{
-  		if(results.buttonIndex == 1)
-  		{
-  			var PINvalue = window.localStorage['PINvalue'];
-  			// OK clicked, show input value
-  			if(results.input1 != PINvalue)
-  			{
-  				this.initialize();
-  			}else if(results.input1 === PINvalue){
-  				$("#theBody").removeClass('grell');
-  				$('#myTab a[href="#ble_scan"]').tab('show');
-  				$("#renameWallet").attr('disabled',true);
-  			}
-
-  		}
-  		if(results.buttonIndex == 2)
-  		{
-  			// Cancel clicked
-  			this.initialize();
-  		}
-  	},
-
-
-  	firstPINcache: function (resultsFirst)
-  	{
-  		if(resultsFirst.buttonIndex == 1)
-  		{
-  			this.pinTheFirst = resultsFirst.input1;
-  // 			alert(this.pinTheFirst);
-  			pausecomp(300);
-  			window.plugins.pinDialog.prompt("Verify your desired PIN", this.PINsetcallback, "RE-ENTER APP PIN", ["OK","Cancel"]);
-
-  		}else if(resultsFirst.buttonIndex == 2)
-  		{
-  // 		alert("You can later set a PIN in the extras menu");
-  			this.pinFirstDecline = 1;
-  			// Cancel clicked
-          	window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  			$("#theBody").removeClass('grell');
-  			$('#myTab a[href="#ble_scan"]').tab('show');
-  			$("#renameWallet").attr('disabled',true);
-  		}
-  	},
-
-  	PINsetcallback: function (results)
-  	{
-  		if(results.buttonIndex == 1)
-  		{
-  			if(results.input1 == this.pinTheFirst)
-  			{
-  				window.localStorage['PINvalue'] = results.input1;
-  				var PINvalue = window.localStorage['PINvalue'];
-  				window.plugins.toast.show('PIN set to: ' + PINvalue, 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  // 				alert('PIN set to: ' + PINvalue);
-  				window.localStorage['PINstatus'] = 'true';
-  				var PINstatus = window.localStorage['PINstatus'];
-  				globalPINstatus = 'true';
-  				$("#theBody").removeClass('grell');
-  				$('#myTab a[href="#ble_scan"]').tab('show');
-  				$("#renameWallet").attr('disabled',true);
-  			}else
-  			{
-  				window.plugins.toast.show('PINs don\'t match', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  				pausecomp(300);
-  				this.setAppPIN();
-  			}
-  		}
-  		if(results.buttonIndex == 2)
-  		{
-  			// Cancel clicked
-          	window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  			$("#theBody").removeClass('grell');
-  			$('#myTab a[href="#ble_scan"]').tab('show');
-  			$("#renameWallet").attr('disabled',true);
-  		}
-  	},
-
-  	showAppPIN: function()
-  	{
-  		alert('globalPINstatus' + globalPINstatus);
-  		var PINstatus = window.localStorage['PINstatus'];
-  		alert('PINstatus' + PINstatus);
-  	},
-
-
-  	setAppPIN: function()
-  	{
-  		window.plugins.pinDialog.prompt("Enter your desired PIN", this.firstPINcache, "SET APP PIN", ["OK","Cancel"]);
-  	},
-
-  	getPINstatus: function()
-  	{
-  		var PINstatus = window.localStorage['PINstatus'];
-  		return PINstatus;
-  	},
-
-
-  	getPIN: function (status)
-  	{
-
-  			if(status === 'true'){
-  				window.plugins.pinDialog.prompt("Enter App PIN to proceed", this.PINcallback, "SECURE AREA", ["OK","Cancel"]);
-  			}else if(status !== 'false' && status !== 'true'){
-  				pausecomp(1000);
-  				this.setAppPIN();
-  			}
-  	},
-
-
-
-
-
-
-  // 	startScan: function()
-  // 	{
-  // // 		this.stopScan();
-  // 		this.displayStatus('Starting scan...');
-  // 		this.displayStatus('Scanning...');
-  // 		evothings.ble.startScan(
-  // 			function(deviceInfo)
-  // 			{
-  // 				if (this.knownDevices[deviceInfo.address])
-  // 				{
-  // 					return;
-  // 				}
-  // 				console.log('found device: ' + deviceInfo.name);
-  // 				this.knownDevices[deviceInfo.address] = deviceInfo;
-  // /**
-  // *				This is used if a specifically named device is desired
-  // */
-  // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
-  // // 				{
-  // // 					console.log('Found bitlox');
-  // // 					connectee = deviceInfo;
-  // // 					pausecomp(5000);
-  // // 					this.connect(deviceInfo.address);
-  // // 				}
-  // 				if(platform == "android")
-  // 				{
-  // 					pausecomp(500);
-  // 				}
-  //
-  // 				this.connect(deviceInfo.address);
-  //
-  // 			},
-  // 			function(errorCode)
-  // 			{
-  // 				this.displayStatus('startScan error: ' + errorCode);
-  // 			});
-  // 	},
-
-  	// Start the scan. Call the callback function when a device is found.
-  	// Format:
-  	//   callbackFun(deviceInfo, errorCode)
-  	//   deviceInfo: address, rssi, name
-  	//   errorCode: String
-  	startScanNew: function()
-  	{
-      var appapi = this
-  		this.stopScan();
-  		this.displayStatus('Scanning...');
-      // console.log(JSON.stringify(evothings.ble))
-  		evothings.ble.startScan(
-  			function(device)
-  			{
-  				// Report success. Sometimes an RSSI of +127 is reported.
-  				// We filter out these values here.
-  				if (device.rssi <= 0)
-  				{
-  					appapi.deviceFound(device, null);
-  				}
-  			},
-  			function(errorCode)
-  			{
-          console.error("BITLOX BLE SCAN ERROR", errorCode)
-  				// Report error.
-  				appapi.deviceFound(null, errorCode);
-  			}
-  		);
-  	},
-
-  // 	reconnect: function()
-  // 	{
-  // 		this.displayStatus('Reconnecting...');
-  // 		evothings.ble.startScan(
-  // 			function(device)
-  // 			{
-  // 				console.log('found device: ' + device.name);
-  // 				this.knownDevices[device.address] = device;
-  // /**
-  // *				This is used if a specifically named device is desired
-  // */
-  // // 				if (deviceInfo.name == 'bitlox-1' && !this.connectee)
-  // // 				{
-  // // 					console.log('Found bitlox');
-  // // 					connectee = deviceInfo;
-  // // 					pausecomp(5000);
-  // // 					this.connect(deviceInfo.address);
-  // // 				}
-  // 				if(platform == "android")
-  // 				{
-  // 					pausecomp(500);
-  // 				}
-  //
-  // 				this.connect(device.address);
-  // 			},
-  // 			function(errorCode)
-  // 			{
-  // 				this.displayStatus('reconnect: ' + errorCode);
-  // 			});
-  // 	},
-
-  	connect: function(address)
-  	{
-  		evothings.ble.stopScan();
-  		this.displayStatus('Connecting...');
-  		evothings.ble.connectToDevice(
-  			address,
-  			function(connectInfo)
-  			{
-  				if (connectInfo.state == 2) // Connected
-  				{
-  					if(platform == "android")
-  					{
-  						pausecomp(500);
-  					}
-  					this.deviceHandle = connectInfo.deviceHandle;
-  					this.getServices(connectInfo.deviceHandle);
-  // 					connectedDevices[address] = address;
-  				}
-  				else
-  				{
-  					this.displayStatus('Disconnected');
-  					pausecomp(50);
-  					this.connect(address);
-  				}
-  			},
-  			function(errorCode)
-  			{
-  				this.displayStatus('connect: ' + errorCode);
-  			});
-  			// $('#list_wallets').attr('disabled',false);
-  	},
-
-  	/** Close all connected devices. */
-  	closeConnectedDevices: function()
-  	{
-  			$.each(this.knownDevices, function(key, device)
-  			{
-  				this.deviceHandle && evothings.ble.close(this.deviceHandle);
-  			});
-  		this.knownDevices = {};
-
-  	},
-
-
-
-  /**
-  * 	Chops up the command/data to send into either 64 byte (iOS) or 20 byte (android) chunks,
-  * 	zero-fills out to the end of the current frame and transforms into a byte buffer for sending out via BLE
-  *   This command replaces the previously used "hidWriteRawData" and is aliased inside of "autoCannedTransaction" as it
-  *	replaces the functions of both of those.
-  *	As iOS and Android seem to have different tolerances for transmission speed, the blocksize and transmission delay
-  *	are broken out for each. It may be desirable in the settings of the app that these parameters could be "Tuned" to different handsets.
-  *	(My testbed is an old Huawei Android handset) - or possible dynamically set via a ping/echo check of connectivity speed.
-  *	data: hex encoded string
-  */
-
-
-  // 	This function adds the parameters the write function needs
-  	passToWrite: function(passedData)
-  	{
-  		this.bleWrite(
-  			'writeCharacteristic',
-  			this.deviceHandle,
-  			this.characteristicWrite,
-  			passedData
-  			);
-  	},
-
-
-  // 	This function adds the parameters the write function needs
-  	writeDeviceName: function(newDeviceName)
-  	{
-  // 		alert("name: "+this.characteristicName);
-  // 		alert("write: "+this.characteristicWrite);
-
-  // 		this.write(
-  // 			'writeDescriptor',
-  // 			this.deviceHandle,
-  // 			this.descriptorName,
-  // 			new Uint8Array([35,35,61,61]));
-
-  		this.writeWithResults(
-  			'writeCharacteristic',
-  			this.deviceHandle,
-  			this.characteristicName,
-  			newDeviceName);
-  	},
-
-
-
-  // 	Actual write function
-  	bleWrite: function(writeFunc, deviceHandle, handle, value)
-  	{
-  		if (handle)
-  		{
-  			evothings.ble[writeFunc](
-  				deviceHandle,
-  				handle,
-  				value,
-  				function()
-  				{
-  // 					alert(writeFunc + ': ' + handle + ' success.');
-  					console.log(writeFunc + ': ' + handle + ' success.');
-  				},
-  				function(errorCode)
-  				{
-  // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
-
-  					console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
-  				});
-  		}
-
-  	},
-
-  // 	Actual write function
-  	writeWithResults: function(writeFunc, deviceHandle, handle, value)
-  	{
-  		if (handle)
-  		{
-  			ble[writeFunc](
-  				deviceHandle,
-  				handle,
-  				value,
-  				function()
-  				{
-  					window.plugins.toast.show('Device renamed successfully', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  // 					alert(writeFunc + ': ' + handle + ' success.');
-  					console.log(writeFunc + ': ' + handle + ' success.');
-  				},
-  				function(errorCode)
-  				{
-  // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
-
-  					console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
-  				});
-  		}
-  		$('#myTab a[href="#ble_scan"]').tab('show');
-  		$('#renameDeviceButton').attr('disabled',false);
-  		this.onStopScanButton();
-  		this.onStartScanButton();
-  	},
-
-  /**
-  * 	Reads the datastream after subscribing to notifications.
-  * 	Bytes are read off one at a time and assembled into a frame which is then passed to
-  * 	be processed. The passed frame may not contain the whole message, which will be completed
-  * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
-  */
-  	startReading: function(deviceHandle)
-  	{
-  		this.displayStatus('Enabling notifications...');
-
-  		var sD = '';
-  		console.log('data at beginning: ' + sD);
-
-  		// Turn notifications on.
-  		this.bleWrite(
-  			'writeDescriptor',
-  			deviceHandle,
-  			this.descriptorNotification,
-  			new Uint8Array([1,0]));
-
-  		// Start reading notifications.
-  		evothings.ble.enableNotification(
-  			deviceHandle,
-  			this.characteristicRead,
-  			function(data)
-  			{
-  				this.displayStatus('Active');
-  				var buf = new Uint8Array(data);
-  				for (var i = 0 ; i < buf.length; i++)
-  				{
-  					sD = sD.concat(d2h(buf[i]).toString('hex'));
-  				};
-
-  				console.log('data semifinal: ' + sD);
-  				for (var i = 0 ; i < buf.length; i++)
-  				{
-  					buf[i] = 0;
-  				};
-  				this.sendToProcess(sD);
-  				sD = '';
-  				if(platform == "android")
-  				{
-  					pausecomp(10);
-  				}
-
-  			},
-  			function(errorCode)
-  			{
-  				this.displayStatus('enableNotification error: ' + errorCode);
-  			});
-  		this.displayStatus('Ready');
-  	},
-
-  /**
-  * 	Assembles whole message strings
-  * 	The raw data is going to be coming in in possible uncompleted parts.
-  * 	We will sniff for the 2323 and commence storing data from there.
-  * 	The payload size is grabbed from the first 2323 packet to determine when we are done and
-  * 	may send the received message onwards.
-  */
-  	sendToProcess: function(rawData)
-  	{
-  		console.log('data final: ' + rawData);
-  		var rawSize = rawData.length;
-  		console.log('rawSize: ' + rawSize);
-  		console.log('incomingData at top ' + incomingData);
-
-  		// Grab the incoming frame and add it to the global incomingData
-          // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
-  		if (rawData.match(/2323/) || dataReady == true)
-  		{
-  			console.log('or match ');
-  			incomingData = incomingData.concat(rawData);
-  			console.log('incomingData ' + incomingData);
-
-  // 			Find out how long the total message is. This must be stored globally as the
-  // 			sendToProcess routine is called repeatedly blanking local variables
-  			if (incomingData.match(/2323/))
-  			{
-  				console.log('header match');
-  				dataReady = true;
-  				var headerPosition = incomingData.search(2323)
-  				payloadSize = incomingData.substring(headerPosition + 8, headerPosition + 16)
-  				console.log('PayloadSize hex: ' + payloadSize);
-  				var decPayloadSize = parseInt(payloadSize, 16);
-  				console.log('decPayloadSize: ' + decPayloadSize);
-  				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
-  			}
-  		}
-  // 		Once the incomingData has grown to the length declared, send it onwards.
-  		if(incomingData.length === ((decPayloadSize*2) + 16))
-  		{
-  			var dataToSendOut = incomingData;
-  			incomingData = '';
-  			dataReady = false;
-  			this.finalPrepProcess(dataToSendOut);
-  		}
-  	},
-
-  /**
-   *	Takes whole message strings and preps them for consumption by the processResults function
-  */
-  	finalPrepProcess: function(dataToProcess)
-  	{
-  			if (dataToProcess.match(/2323/)) {
-  				var headerPosition = dataToProcess.search(2323);
-  				var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
-  				document.getElementById("command").innerHTML = command;
-  				var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
-  				console.log('PayloadSize: ' + payloadSize2);
-  				var decPayloadSize = parseInt(payloadSize2, 16);
-  				console.log('decPayloadSize: ' + decPayloadSize);
-  				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
-
-  				document.getElementById("payLoadSize").innerHTML = payloadSize2;
-  				var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
-  				document.getElementById("payload_HEX").innerHTML = payload;
-  				document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
-  				console.log('ready to process: ' + dataToProcess);
-  				processResults(command, payloadSize2, payload);
-  			}
-  	},
-
-  /**
-   * 	Opens reading & writing services on the BitLox device. The uuids are specific to the BitLox hardware
-  */
-  	getServices: function(deviceHandle)
-  	{
-  		this.displayStatus('Reading services...');
-  // 		alert('deviceHandle: ' + deviceHandle);
-  		evothings.ble.readAllServiceData(deviceHandle, function(services)
-  		{
-  			// Find handles for characteristics and descriptor needed.
-  			for (var si in services)
-  			{
-  				var service = services[si];
-  // 				alert(service);
-  				for (var ci in service.characteristics)
-  				{
-  					var characteristic = service.characteristics[ci];
-
-  					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
-  					{
-  						this.characteristicRead = characteristic.handle;
-  					}
-  					else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
-  					{
-  						this.characteristicWrite = characteristic.handle;
-  					}
-  					else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
-  					{
-  						this.characteristicName = characteristic.handle;
-  					}
-
-  					for (var di in characteristic.descriptors)
-  					{
-  						var descriptor = characteristic.descriptors[di];
-
-  						if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
-  							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
-  						{
-  							this.descriptorNotification = descriptor.handle;
-  						}
-  						if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
-  							descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
-  						{
-  							this.descriptorName = descriptor.handle;
-  						}
-  					}
-  				}
-  			}
-
-  			if (this.characteristicRead && this.characteristicWrite && this.descriptorNotification && this.characteristicName && this.descriptorName)
-  			{
-  				console.log('RX/TX services found.');
-  				this.startReading(deviceHandle);
-  			}
-  			else
-  			{
-  				this.displayStatus('ERROR: RX/TX services not found!');
-  			}
-  		},
-  		function(errorCode)
-  		{
-  			this.displayStatus('readAllServiceData error: ' + errorCode);
-  		});
-  	},
-
-  	openBrowser: function(url)
-  	{
-  		window.open(url, '_system', 'location=yes')
-  	},
-
-  	scanQR:	function()
-  	{
-  		cloudSky.zBar.scan(
-  		{
-  // 			camera: "back" // defaults to "back"
-  // 			flash: "auto", // defaults to "auto". See Quirks
-  			drawSight: false //defaults to true, create a red sight/line in the center of the scanner view.
-  		}, function(s){
-  			s = s.replace(/bitcoin\:/g,'');
-  			document.getElementById('receiver_address').value = s;
-  			this.displayStatus('QR code scanned');
-  		}, function(){
-  			this.displayStatus('Error scanning QR');
-  		});
-  	},
-
-
-
-
-
-  // Stop scanning for devices.
-  stopScan: function()
-  {
-  	evothings.ble.stopScan();
-  },
-
-  // Called when Start Scan button is selected.
-  onStartScanButton: function()
-  {
-  	this.closeConnectedDevices();
-  	this.stopScan();
-  	this.knownDevices = {};
-  	this.startScanNew(this.deviceFound);
-  	this.displayStatus('Scanning...');
-  	this.updateTimer = setInterval(this.displayDeviceList, 1000);
-  	this.displayDeviceList;
-  },
-
-  // Called when Stop Scan button is selected.
-  onStopScanButton: function()
-  {
-  	this.closeConnectedDevices();
-  	this.stopScan();
-
-  	this.knownDevices = {};
-  	this.displayStatus('Scan stopped');
-  	this.displayDeviceList();
-  	clearInterval(this.updateTimer);
-  },
-
-  // Called when a device is found.
-  deviceFound: function(device, errorCode)
-  {
-  	if (device)
-  	{
-  		// Set timestamp for device (this is used to remove
-  		// inactive devices).
-  		device.timeStamp = Date.now();
-  		// Insert the device into table of found devices.
-  		this.knownDevices[device.address] = device;
-      //this next line goes nuts in logcat. use wisely
-      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify(this.knownDevices));
-
-  	}
-  	else if (errorCode)
-  	{
-  		this.displayStatusScanner('Scan Error: ' + errorCode);
-  	}
-  },
-
-  // Display the device list.
-  displayDeviceList: function()
-  {
-  	// Clear device list.
-  	$('#found-devices').empty();
-  	var timeNow = Date.now();
-
-  	$.each(this.knownDevices, function(key, device)
-  	{
-  		// Only show devices that are updated during the last 10 seconds.
-  		if (device.timeStamp + 10000 > timeNow)
-  		{
-  			// Map the RSSI value to a width in percent for the indicator.
-  			var rssiWidth = 100; // Used when RSSI is zero or greater.
-  			if (device.rssi < -100) { rssiWidth = 0; }
-  			else if (device.rssi < 0) { rssiWidth = 100 + device.rssi; }
-
-  			// Create tag for device data.
-  			var element = $(
-  				'<li id="device_chosen" class="deviceSelection device-list" data-target="#bip32"  data-addr="'+ device.address +'" data-name="'+device.name+'">'
-  				+	'<span >'
-  				+	'<strong>' + device.name + '</strong><br />'
-  				// Do not show address on iOS since it can be confused
-  				// with an iBeacon UUID.
-  // 				+	(evothings.os.isIOS() ? '' : device.address + '<br />')
-  // 				+	(evothings.os.isIOS() ? device.address : device.address + '<br />')
-  				+	'<small><span class="left-label">SIGNAL STRENGTH  </small></span>&nbsp;<span class="right-signal">' +device.rssi + ' dB</span><br />'
-  				+ 	'<div style="background:rgb(225,0,0);height:20px;width:'
-  				+ 		rssiWidth*2 + '%;"></div>'
-  				+	'</span>'
-  				+ '</li>'
-  			);
-
-  			$('#found-devices').append(element);
-  		}
-  	});
-  },
-
-
-
-  // Display a status message
-  displayStatusScanner: function(message)
-  {
-  	// $('#scan-status').html(message);
-    console.error(message)
-  }
-
-
-  };
-  // End of app object.
 
 
 
@@ -4190,7 +4196,7 @@
   //         	}else{
   // 				event.preventDefault();
   // 				$('#forceRefresh').attr('disabled',true);
-  // 				BleApi.app.displayStatus('Refreshing balances...');
+  // 				BleApi.displayStatus('Refreshing balances...');
   // 				onUpdateSourceKey();
   // 			}
   // 		});
@@ -4281,7 +4287,7 @@
   //         $('#sgSignDevice').on('click', function() {
   //         	event.preventDefault();
   //         	window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-  // 			BleApi.app.displayStatus('Signing message');
+  // 			BleApi.displayStatus('Signing message');
   //         	signMessageWithDevice();
   //         });
   //
@@ -4336,7 +4342,7 @@
   // 			{
   // 				window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   // 				currentCommand = 'formatDevice';
-  // 				BleApi.app.displayStatus('Formatting');
+  // 				BleApi.displayStatus('Formatting');
   // 				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.format_storage);
   // 			}
   // 		};
@@ -4472,7 +4478,7 @@
   //             var theBalance = document.getElementById('balance_display').innerHTML;
   //             document.getElementById('payment_title').innerHTML = theBalance;
   //             $('#myTab a[href="#sendPayment"]').tab('show');
-  //             BleApi.app.displayStatus('Ready');
+  //             BleApi.displayStatus('Ready');
   //         });
   //
   // 		$('#receiveButton').on('click', function() {
@@ -4508,7 +4514,7 @@
   //
   // 				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
   //
-  // 				BleApi.app.displayStatus('Listing wallets');
+  // 				BleApi.displayStatus('Listing wallets');
   //             }
   //         });
   //
@@ -4523,7 +4529,7 @@
   // 				event.preventDefault();
   // 				currentCommand = "loadWallet";
   // 				directLoadWallet($(this).data('number'));
-  // 				BleApi.app.displayStatus('Loading wallet');
+  // 				BleApi.displayStatus('Loading wallet');
   //
   // 				document.getElementById("loaded_wallet_name").innerHTML = document.getElementById("name_"+$(this).data('number')).innerHTML;
   // 				window.plugins.toast.show('Check your BitLox', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});

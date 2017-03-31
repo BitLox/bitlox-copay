@@ -12,6 +12,7 @@
             isNative: document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1,
             bleReady: false,
             knownDevices: {},
+            numDevices: 0,
             connectAttempted: false,
             connected: false,
             status: "No Bitlox",
@@ -29,28 +30,32 @@
           */
 
           api = bleapi;
-          api.app.initialize();
-          var intv = setInterval(function() {
-            sc.bitlox.bleReady = api.app.bleReady;
-            if(api.app.bleReady) {
-              clearInterval(intv)
-              api.app.startScanNew();
-            }
-          },1000)
-          var intv2 = setInterval(function() {
-            sc.bitlox.knownDevices = api.app.knownDevices;
-          },1000)
+          api.initialize();
           sc.connectBle = function(address) {
-            // api.app.connect(address)
-            clearInterval(intv2)
+            api.connect(address)
           }
         }
-
-
 
         sc.refreshBitlox = function() {
             api.ping();
         };
+
+        // this is just an example of how $scope and BleApi all tie together.
+        api.$scope.$watch('bleReady', function(bleReady) {
+            if(bleReady) {
+              api.startScanNew();
+            }
+        });
+
+        api.$scope.$watch('knownDevicesList', function(knownDevices) {
+          sc.bitlox.knownDevices = knownDevices;
+          sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
+          console.log(sc.bitlox.numDevices)
+          console.log(JSON.stringify(knownDevices))
+          console.log(Object.keys(knownDevices))
+          console.log(JSON.stringify(Object.keys(knownDevices)))
+                    console.log(Object.keys(knownDevices).length)
+        })
 
         api.$scope.$watch('status', function(hidstatus) {
             console.warn(hidstatus)

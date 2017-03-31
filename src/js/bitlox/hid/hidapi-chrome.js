@@ -1,9 +1,6 @@
 (function(window, angular, chrome, async, ProtoBuf, ByteBuffer) {
     'use strict';
-    // for now just rig it so it does not load this if we are in the chrome app
-    if(!chrome || !chrome.hid) {
-      return false;
-    }
+
 
     angular.module('hid')
         .service('hidapi', HidAPI);
