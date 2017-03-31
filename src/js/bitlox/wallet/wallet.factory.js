@@ -1,6 +1,5 @@
 (function(window, angular, async) {
     'use strict';
-    var isNative = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
     angular.module('app.wallet')
         .factory('Wallet', WalletFactory);
@@ -8,13 +7,13 @@
     WalletFactory.$inject = [
         '$q', '$timeout',
         'WalletStatus',
-        'hidapi', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'bleapi'
+        'hidchrome', 'hidweb', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'bleapi', 'platformInfo'
       ];
 
     function WalletFactory(
         $q, $timeout,
         WalletStatus,
-        hidapi, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath, bleapi) {
+        hidchrome,hidweb, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath, bleapi, platformInfo) {
 
         var Wallet = function(data) {
             this.number = data.wallet_number;
@@ -30,8 +29,13 @@
             this.transactions = [];
         };
 
-        var api = isNative ? bleapi : hidapi
-
+        var api = hidweb;
+        if (platformInfo.isChromeApp) {
+          api = hidchrome
+        }
+        else if(platformInfo.isMobile) {
+          api = bleapi;
+        }
         Wallet.NOTIFY_XPUB_LOADED = 'xpub loaded';
 
         Object.defineProperty(Wallet.prototype, 'name', {

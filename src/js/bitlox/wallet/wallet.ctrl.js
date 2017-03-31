@@ -4,13 +4,17 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidapi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi'];
+    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidweb', 'hidchrome', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi', 'platformInfo'];
 
-    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi) {
+    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
         var vm = this;
-
-        vm.ble = bleapi.app;
-
+        var api = hidweb;
+        if (platformInfo.isChromeApp) {
+          api = hidchrome
+        }
+        else if(platformInfo.isMobile) {
+          api = bleapi;
+        }
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
 
@@ -126,7 +130,7 @@
 
         vm.prepForFlash = function() {
             vm.flashing = true;
-            hidapi.flash().catch(Toast.errorHandler)
+            api.flash().catch(Toast.errorHandler)
                 .finally(function() {
                     vm.flashing = false;
                 });

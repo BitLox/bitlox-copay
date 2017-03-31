@@ -1,10 +1,8 @@
 (function(window, chrome, angular, async, ProtoBuf, ByteBuffer) {
     'use strict';
 
-
-
     angular.module('hid')
-        .service('hidapi', HidAPI);
+        .service('hidweb', HidAPI);
 
     HidAPI.$inject = [
         '$q', '$timeout', '$interval', '$rootScope',
@@ -421,6 +419,9 @@
 
     HidAPI.prototype._doCommand = function(command, expectedType) {
         var hidapi = this;
+        if(hidapi.$scope.status === hidapi.STATUS_DISCONNECTED) {
+          return hidapi.$q.reject(new Error("App is not in HID mode or HID is disconnected"))
+        }
         hidapi.doingCommand = true;
         return hidapi.write(command).then(function(written) {
             if (written === 0) {

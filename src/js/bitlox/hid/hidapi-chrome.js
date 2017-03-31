@@ -1,9 +1,8 @@
 (function(window, angular, chrome, async, ProtoBuf, ByteBuffer) {
     'use strict';
 
-
     angular.module('hid')
-        .service('hidapi', HidAPI);
+        .service('hidchrome', HidAPI);
 
     HidAPI.$inject = [
         '$q', '$timeout', '$interval', '$rootScope',
@@ -75,17 +74,8 @@
     HidAPI.STATUS_CONNECTING       = HidAPI.prototype.STATUS_CONNECTING = "connecting";
     HidAPI.STATUS_READING          = HidAPI.prototype.STATUS_READING = "reading";
     HidAPI.STATUS_WRITING          = HidAPI.prototype.STATUS_WRITING = "writing";
-    var isNative = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
-    // for now just do not load if we are in chrome app
-    if(!chrome || !chrome.hid || isNative) {
-      console.log('not loading web hid')
-      return false;
-    } else {
-      console.warn(document.URL)
-        console.warn(document.URL)
-          console.warn(document.URL)
-    }
+
     // Get the device. If we already have it, just return it.
     // Otherwise, do a hidraw scan and find, then open, the device
     HidAPI.prototype.device = function() {

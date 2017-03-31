@@ -4,12 +4,12 @@
     angular.module('app.core')
         .controller('StatusCtrl', StatusCtrl);
 
-    StatusCtrl.$inject = ['$scope', 'hidapi', 'WalletStatus', 'bleapi'];
+    StatusCtrl.$inject = ['$scope', 'hidchrome', 'hidweb', 'WalletStatus', 'bleapi', 'platformInfo'];
 
-    function StatusCtrl($scope, hidapi, WalletStatus, bleapi) {
+    function StatusCtrl($scope, hidchrome, hidweb, WalletStatus, bleapi, platformInfo) {
       var sc = this;
         sc.bitlox = {
-            isNative: document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1,
+            isMobile: platformInfo.isMobile,
             bleReady: false,
             knownDevices: {},
             numDevices: 0,
@@ -23,8 +23,11 @@
             status: "No Wallet",
             alertClass: "warning"
         };
-        var api = hidapi;
-        if(sc.bitlox.isNative) {
+        var api = hidweb;
+        if (platformInfo.isChromeApp) {
+          api = hidchrome
+        }
+        else if(sc.bitlox.isMobile) {
           /*
           "{"20:C3:8F:B5:DD:9C":{"address":"20:C3:8F:B5:DD:9C","rssi":-66,"name":"BITLOX","scanRecord":"AgEGBQLw/7D/Cv8AAP////9kAP8HCUJJVExPWAUSCAAQAAIKAAUSCAAQAAIKAAAAAAAAAAAAAAAAAAAAAAA=","advertisementData":{"kCBAdvDataManufacturerData":"AAD/////ZAD/","kCBAdvDataLocalName":"BITLOX","kCBAdvDataTxPowerLevel":0,"kCBAdvDataServiceUUIDs":["0000fff0-0000-1000-8000-00805f9b34fb","0000ffb0-0000-1000-8000-00805f9b34fb"]},"timeStamp":1490684995161}}"
           */
