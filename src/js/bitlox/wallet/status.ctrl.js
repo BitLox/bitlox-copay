@@ -49,12 +49,7 @@
 
         api.$scope.$watch('knownDevicesList', function(knownDevices) {
           sc.bitlox.knownDevices = knownDevices;
-          sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
-          console.log(sc.bitlox.numDevices)
-          console.log(JSON.stringify(knownDevices))
-          console.log(Object.keys(knownDevices))
-          console.log(JSON.stringify(Object.keys(knownDevices)))
-                    console.log(Object.keys(knownDevices).length)
+          // sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
         })
 
         api.$scope.$watch('status', function(hidstatus) {
