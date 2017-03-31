@@ -166,6 +166,7 @@
     			'deviceready',
           function() {
             platform = window.device.platform.toLowerCase()
+            console.warn('loading up the shizz for ' + platform)
             if(platform === 'android') {
               bleapi.$scope.bleReady = true;
             } else {
@@ -425,7 +426,7 @@
           this.$scope.$apply(function() {
             bleapi.$scope.knownDevicesList[device.address] = device;
             //this next line goes nuts in logcat. use wisely
-            // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( bleapi.$scope.knownDevicesList[device.address].address));
+            console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( bleapi.$scope.knownDevicesList[device.address].address));
           })
 
       	}
