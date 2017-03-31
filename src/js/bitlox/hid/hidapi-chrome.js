@@ -8,7 +8,7 @@
         '$q', '$timeout', '$interval', '$rootScope',
         'Toast', 'hexUtil', 'txUtil', 'messageUtil',  'abconv',
         'VENDOR_ID', 'PRODUCT_ID', 'RECEIVE_CHAIN', 'CHANGE_CHAIN',
-        'hidCommands', 'PROTO_STRING'
+        'hidCommands', 'PROTO_STRING', 'platformInfo'
     ];
 
 
@@ -16,7 +16,10 @@
     function HidAPI($q, $timeout, $interval, $rootScope,
                     Toast, hexUtil, txUtil, messageUtil, abconv,
                     VENDOR_ID, PRODUCT_ID, RECEIVE_CHAIN, CHANGE_CHAIN,
-                    hidCommands, PROTO_STRING) {
+                    hidCommands, PROTO_STRING, platformInfo) {
+        if(!platformInfo.isChrome) {
+          return false;
+        }
         this.VENDOR_ID = VENDOR_ID;
         this.PRODUCT_ID = PRODUCT_ID;
         this.RECEIVE_CHAIN = RECEIVE_CHAIN;

@@ -41,16 +41,7 @@
         this.$scope = $rootScope.$new();
         this.$scope.status = HidAPI.STATUS_DISCONNECTED;
     }
-    var isNative = document.URL.indexOf( 'http://' ) === -1 && document.URL.indexOf( 'chrome-extension://' ) === -1 && document.URL.indexOf( 'https://' ) === -1;
 
-    // for now just do not load if we are in chrome app
-    if((chrome && chrome.hid) || isNative) {
-      console.log('not loading web hid')
-      return false;
-    } else {
-      console.log("Cordova, the meat puppet of app machines")
-      console.log(document.URL)
-    }
     HidAPI.TYPE_INITIALIZE         = HidAPI.prototype.TYPE_INITIALIZE = 'initialize';
     HidAPI.TYPE_PUBLIC_ADDRESS     = HidAPI.prototype.TYPE_PUBLIC_ADDRESS = 'public address';
     HidAPI.TYPE_ADDRESS_COUNT      = HidAPI.prototype.TYPE_ADDRESS_COUNT = 'address count';
