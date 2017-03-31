@@ -45,6 +45,7 @@
 
         // this is just an example of how $scope and BleApi all tie together.
         api.$scope.$watch('bleReady', function(bleReady) {
+            console.log("ble ready? "+ bleReady)
             if(bleReady) {
               api.startScanNew();
             }

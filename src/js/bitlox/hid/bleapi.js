@@ -166,14 +166,7 @@
     			'deviceready',
           function() {
             platform = window.device.platform.toLowerCase()
-            console.warn('loading up the shizz for ' + platform)
-            if(platform === 'android') {
-              bleapi.$scope.bleReady = true;
-            } else {
-              evothings.scriptsLoaded(function() {
-                bleapi.$scope.bleReady = true;
-              })
-            }
+            bleapi.$scope.bleReady = true;
           },false);
     	}
       /**
