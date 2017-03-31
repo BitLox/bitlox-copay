@@ -24,6 +24,9 @@
       	this.pinTheFirst = 0;
       	this.pinFirstDecline = 0;
       	this.characteristicName = null;
+        this.selectedDevice = {};
+        this.deviceHandle = null;
+
 		}
     BleApi.STATUS_SCANNING     = BleApi.prototype.STATUS_SCANNING = "scanning";
     BleApi.STATUS_DISCONNECTED     = BleApi.prototype.STATUS_DISCONNECTED = "disconnected";
@@ -302,8 +305,8 @@
                 console.warn('waiting for android to think')
     						pausecomp(1000);
     					}
-    					bleapi.app.deviceHandle = connectInfo.deviceHandle;
-    					bleapi.app.getServices(connectInfo.deviceHandle);
+    					bleapi.deviceHandle = connectInfo.deviceHandle;
+    					bleapi.getServices(connectInfo.deviceHandle);
     // 					connectedDevices[address] = address;
     				}
     				else
@@ -416,14 +419,6 @@
     // 	ui: {},
     	updateTimer: null,
 
-    	// Discovered devices.
-    	selectedDevice: {},
-
-    	// Reference to the device we are connecting to. Unused
-    // 	connectee: null,
-
-    	// Handle to the connected device.
-    	deviceHandle: null,
 
 
 
