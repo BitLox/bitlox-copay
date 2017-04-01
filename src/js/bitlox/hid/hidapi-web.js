@@ -136,7 +136,7 @@
 
     HidAPI.prototype.protoBuilder = function() {
         if (this._builder === null) {
-            var builder = ProtoBuf.loadProtoFile("proto/messages.proto");
+            var builder = ProtoBuf.loadProtoFile("../proto/messages.proto");
             this._builder = builder.build();
         }
         return this._builder;

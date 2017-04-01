@@ -6,29 +6,30 @@
   </ion-nav-bar>
 
   <ion-content>
-    <div ng-controller="StatusCtrl as sc">
-      <div ng-hide="sc.bitlox.connected || !sc.bitlox.connectAttempted">
+    <div ng-controller="BitLoxCtrl">
+      <pre>-{{bitlox.getBleReady()}}</pre>
+      <div ng-hide="bitlox.connected || !bitlox.connectAttempted">
           <h2>
               No BitLox device detected.<br />
               Please connect your BitLox and
-              <a href ng-click="sc.refreshBitlox()">tap here to try again.</a>
+              <a href ng-click="refreshBitlox()">tap here to try again.</a>
           </h2>
       </div>
-      <div ng-show="sc.wallet.status">
+      <div ng-show="wallet.status">
           <span class="glyphicon"
-                ng-class="sc.wallet.glyph"></span>
-          {{sc.wallet.status}}
+                ng-class="wallet.glyph"></span>
+          {{wallet.status}}
       </div>
-      <div ng-show="sc.bitlox.isMobile">
+      <div ng-show="bitlox.isMobile">
         <h2>BLE Connection</h2>
         <h2>Select Device</h2>
         <ion-list>
-          <a  ng-show="sc.bitlox.knownDevices"
-                class="item item-remove-animate">
-            No Devices Found
+          <a  ng-if="api.getNumDevices() < 1"
+                class="item item-remove-animate" ng-click="refreshBitlox()">
+            No Devices Found, tap to refresh
           </a>
-          <a ng-repeat="device in sc.bitlox.knownDevices"
-                ng-click="sc.connectBle(device.address)"
+          <a ng-repeat="device in api.getKnownDevices()"
+                ng-click="connectBle(device.address)"
                 class="item item-remove-animate">
             <span class="glyphicon glyphicon-lock">&nbsp;</span>{{device.name}}
           </a>
@@ -36,7 +37,7 @@
         </ion-list>
       </div>
       <div  ng-controller="WalletCtrl as vm"
-        ng-show="sc.bitlox.connected">
+        ng-show="bitlox.connected">
         <h3 ng-show="vm.readingWallets">Loading wallets</h3>
 
         <ion-list ng-show="!vm.readingWallets">
