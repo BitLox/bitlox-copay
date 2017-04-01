@@ -178,7 +178,9 @@ this.initProtoBuf = function(cb) {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
 
-  var path_prefix = platform === 'android' ? "file:///android_asset/" : cordova.file.applicationStorageDirectory
+  // var path_prefix = platform === 'android' ? "file:///android_asset/" : cordova.file.applicationStorageDirectory
+  // var pathToProto = path_prefix+"www/proto/messages.proto";
+  var path_prefix = platform === 'android' ? "file:///android_asset/" : "file:///"
 
   var pathToProto = path_prefix+"www/proto/messages.proto";
   console.warn(pathToProto)
