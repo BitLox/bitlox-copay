@@ -177,7 +177,9 @@ this.initialize = function() {
 this.initProtoBuf = function(cb) {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
-  ProtoBuf.loadProtoFile("/proto/messages.proto", function(err, builder) {
+
+
+  ProtoBuf.loadProtoFile("file:///android_asset/www/proto/messages.proto", function(err, builder) {
     if(err) {
       console.error("PROTO LOAD ERROR")
       console.error(err)
@@ -189,9 +191,9 @@ this.initProtoBuf = function(cb) {
 }
 
 this.constructTxString = function(pinAckMessage,command) {
-  tempBuffer = pinAckMessage.encode();
+  var tempBuffer = pinAckMessage.encode();
   var tempTXstring = tempBuffer.toString('hex');
-  txSize = d2h((tempTXstring.length) / 2).toString('hex');
+  var txSize = d2h((tempTXstring.length) / 2).toString('hex');
   console.log("tempTXstring = " + tempTXstring);
 
   var j;
@@ -225,7 +227,7 @@ this.ping = function() {
     var pinAckMessage = new Device.Ping({
       "greeting": "PING!"
     });
-    var tempTXstring = this.constructTxString(pinAckMessage,"0000")
+    var tempTXstring = BleApi.constructTxString(pinAckMessage,"0000")
     BleApi.write(tempTXstring)
 
   });
@@ -609,17 +611,17 @@ this.finalPrepProcess = function(dataToProcess)
     if (dataToProcess.match(/2323/)) {
       var headerPosition = dataToProcess.search(2323);
       var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
-      document.getElementById("command").innerHTML = command;
+      // document.getElementById("command").innerHTML = command;
       var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
       console.log('PayloadSize: ' + payloadSize2);
       var decPayloadSize = parseInt(payloadSize2, 16);
       console.log('decPayloadSize: ' + decPayloadSize);
       console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
 
-      document.getElementById("payLoadSize").innerHTML = payloadSize2;
+      // document.getElementById("payLoadSize").innerHTML = payloadSize2;
       var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
-      document.getElementById("payload_HEX").innerHTML = payload;
-      document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
+      // document.getElementById("payload_HEX").innerHTML = payload;
+      // document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
       console.log('ready to process: ' + dataToProcess);
       processResults(command, payloadSize2, payload);
     }
