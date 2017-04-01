@@ -35,23 +35,18 @@
       api.connect(address)
     }
     if($scope.bitlox.isMobile) {
-      console.log('initializing mobile scan for BLE devices...')
       api.initialize();
     }
-    $scope.refreshBitlox = function() {
-      api.startScanNew();
-    };
 
     $scope.$watch('api.getBleReady()', function(newVal) {
       if(newVal) {
         api.startScanNew();
-        setTimeout(function() {
-          api.stopScan();
-        },5000)
       }
     });
 
     $scope.$watch('api.getStatus()', function(hidstatus) {
+      console.warn(hidstatus)
+      console.warn(hidstatus)
       console.warn(hidstatus)
       switch(hidstatus) {
       case api.STATUS_CONNECTED:

@@ -181,10 +181,9 @@ this.listWallets = function() {
 this.ping = function() {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
-  var builder = ProtoBuf.loadProtoFile("../proto/messages.proto"),
+  var builder = ProtoBuf.loadProtoFile("/proto/messages.proto"),
   Device = builder.build();
-  console.log(JSON.stringify(builder))
-  console.log(JSON.stringify(Device))
+  console.log(builder)
   var pin = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes("PING!"));
 
   var pinAckMessage = new Device.Ping({
@@ -387,6 +386,14 @@ this.startScanNew = function() {
 		}
 	);
 }
+this.passToWrite = function(passedData) {
+  this.bleWrite(
+    'writeCharacteristic',
+    this.deviceHandle,
+    this.characteristicWrite,
+    passedData
+    );
+}
 this.deviceFound = function(device, errorCode)  {
 	if (device)
 	{
@@ -437,8 +444,6 @@ this.connect = function(address)	{
 }
 // old sliceAndWrite64, 'data' is a command constant
 this.write = function(data) {
-  console.log(status)
-  console.log(status)
   if(status !== BleApi.STATUS_CONNECTED) {
     // return if the device isn't currently idle
     if(status == BleApi.STATUS_DISCONNECTED) {
@@ -514,7 +519,7 @@ this.write = function(data) {
     }
     bb.flip();
 
-    BleApi.app.passToWrite(bb);
+    BleApi.passToWrite(bb);
     if(platform == "android")
     {
       pausecomp(100);
@@ -1218,16 +1223,7 @@ function processResults(command, length, payload) {
   */
 
 
-  // 	This function adds the parameters the write function needs
-  	passToWrite: function(passedData)
-  	{
-  		this.bleWrite(
-  			'writeCharacteristic',
-  			this.deviceHandle,
-  			this.characteristicWrite,
-  			passedData
-  			);
-  	},
+
 
 
   // 	This function adds the parameters the write function needs
