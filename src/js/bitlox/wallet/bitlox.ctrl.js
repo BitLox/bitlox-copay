@@ -30,7 +30,21 @@
       status: null,
       alertClass: "warning"
     };
-    $scope.connectBle = function(address) {
+    $scope.refreshBitlox = function($event) {
+      if($event) $event.stopPropagation();
+
+      if(platformInfo.isMobile) {
+        api.startScanNew();
+        setTimeout(function() {
+          api.stopScan();
+        },5000)
+      }
+    }
+    $scope.connectBle = function(address, $event) {
+      if($event) {
+        console.log(JSON.stringify($event))
+        $event.stopPropagation();
+      }
       console.log('connecting to '+address)
       api.connect(address)
     }
@@ -40,14 +54,12 @@
 
     $scope.$watch('api.getBleReady()', function(newVal) {
       if(newVal) {
-        api.startScanNew();
+        $scope.refreshBitlox()
       }
     });
 
     $scope.$watch('api.getStatus()', function(hidstatus) {
-      console.warn(hidstatus)
-      console.warn(hidstatus)
-      console.warn(hidstatus)
+      console.warn("New device status: " + hidstatus)
       switch(hidstatus) {
       case api.STATUS_CONNECTED:
           $scope.bitlox.connectAttempted = true;
@@ -63,7 +75,6 @@
           $scope.bitlox.glyph = "glyphicon-refresh";
           break;
       case api.STATUS_DISCONNECTED:
-          console.warn("DISCONNECTED");
           $scope.bitlox.connected = false;
           $scope.bitlox.statusString = "Bitlox disconnected!";
           $scope.bitlox.alertClass = "danger";

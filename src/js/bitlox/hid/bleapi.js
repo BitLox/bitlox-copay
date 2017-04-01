@@ -174,27 +174,27 @@ this.initialize = function() {
       bleReady = true;
     },false);
 }
-
-this.listWallets = function() {
-  return this.write(deviceCommands.list_wallets);
-}
-this.ping = function() {
+this.initProtoBuf = function(cb) {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
-  var builder = ProtoBuf.loadProtoFile("/proto/messages.proto"),
-  Device = builder.build();
-  console.log(builder)
-  var pin = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes("PING!"));
-
-  var pinAckMessage = new Device.Ping({
-    "greeting": "PING!"
+  ProtoBuf.loadProtoFile("/proto/messages.proto", function(err, builder) {
+    if(err) {
+      console.error("PROTO LOAD ERROR")
+      console.error(err)
+      return cb(err)
+    }
+    var Device = builder.build();
+    console.log(JSON.stringify(builder))
+    return cb(null, Device)
   });
+}
 
+this.constructTxString = function(pinAckMessage,command) {
   tempBuffer = pinAckMessage.encode();
   var tempTXstring = tempBuffer.toString('hex');
   txSize = d2h((tempTXstring.length) / 2).toString('hex');
   console.log("tempTXstring = " + tempTXstring);
-  // 	console.log("txSize.length = " + txSize.length);
+
   var j;
   var txLengthOriginal = txSize.length;
   for (j = 0; j < (8 - txLengthOriginal); j++) {
@@ -204,14 +204,32 @@ this.ping = function() {
   // 	console.log("txSizePadded = " + txSize);
   tempTXstring = txSize.concat(tempTXstring);
 
-  var command = "0000";
+  // var command = "0000";
   tempTXstring = command.concat(tempTXstring);
 
   var magic = "2323"
   tempTXstring = magic.concat(tempTXstring);
   console.log("tempTXstring = " + tempTXstring);
+  return tempTXstring;
+}
+this.listWallets = function() {
+  if(platform === 'android') pausecomp(500) // yea really!
+  return this.write(deviceCommands.list_wallets);
+}
+this.ping = function() {
+  this.initProtoBuf(function(err, Device) {
+    if(err) {
+      console.error("error initializing protobuf")
+      console.error(err)
+      return false;
+    }
+    var pinAckMessage = new Device.Ping({
+      "greeting": "PING!"
+    });
+    var tempTXstring = this.constructTxString(pinAckMessage,"0000")
+    BleApi.write(tempTXstring)
 
-  BleApi.write(tempTXstring);
+  });
 }
 
 this.displayStatus = function(status)
@@ -334,9 +352,12 @@ this.startReading = function()
     },
     function(errorCode) {
       bleapi.displayStatus('enableNotification error: ' + errorCode);
+      status = bleapi.STATUS_DISCONNECTED
+      $rootScope.$apply();
     });
   bleapi.displayStatus('Ready');
   status = bleapi.STATUS_CONNECTED
+  $rootScope.$apply()
 }
 
 // 	Actual write function
@@ -403,16 +424,19 @@ this.deviceFound = function(device, errorCode)  {
 		// Insert the device into table of found devices.
     var bleapi = this
     knownDevices[device.address] = device;
+    $rootScope.$apply()
     //this next line goes nuts in logcat. use wisely
     // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( knownDevices[device.address].address));
 	}
 	else if (errorCode)
 	{
+    knownDevices = {};
 		this.displayStatus('Scan Error: ' + errorCode);
 	}
 }
 this.connect = function(address)	{
   var bleapi = this
+  status = bleapi.STATUS_CONNECTING
 	evothings.ble.stopScan();
   if(platform === 'android') pausecomp(1000);
 	this.displayStatus('Connecting...');
@@ -432,6 +456,7 @@ this.connect = function(address)	{
 			}
 			else
 			{
+        status = bleapi.STATUS_DISCONNECTED
 				bleapi.displayStatus('Disconnected');
 				pausecomp(50);
 				bleapi.connect(address);
@@ -439,7 +464,10 @@ this.connect = function(address)	{
 		},
 		function(errorCode)
 		{
+      status = bleapi.STATUS_DISCONNECTED
 			bleapi.displayStatus('connect: ' + errorCode);
+      delete knownDevices[address]
+      bleapi.startScanNew();
 		});
 }
 // old sliceAndWrite64, 'data' is a command constant
@@ -610,6 +638,8 @@ var walletNameListForPicker = [];
 function processResults(command, length, payload) {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
+
+
   var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
       Device = builder.build();
 
