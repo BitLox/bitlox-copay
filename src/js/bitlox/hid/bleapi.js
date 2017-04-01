@@ -180,9 +180,9 @@ this.initProtoBuf = function(cb) {
 
   // var path_prefix = platform === 'android' ? "file:///android_asset/" : cordova.file.applicationStorageDirectory
   // var pathToProto = path_prefix+"www/proto/messages.proto";
-  var path_prefix = platform === 'android' ? "file:///android_asset/" : "file:///"
+  var path_prefix = platform === 'android' ? "file:///android_asset/www/" : ""
 
-  var pathToProto = "proto/messages.proto";
+  var pathToProto = path_prefix+"proto/messages.proto";
   console.warn(pathToProto)
   console.warn(pathToProto)
   console.warn(pathToProto)
