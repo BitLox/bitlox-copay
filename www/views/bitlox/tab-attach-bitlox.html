@@ -29,9 +29,10 @@
             Scanning...No Devices Found
           </a>
           <a ng-repeat="device in api.getKnownDevices()"
+             ng-click="connectBle(device.address)"
                 class="item item-remove-animate">
-            <span  ng-click="connectBle(device.address)" class="glyphicon glyphicon-lock">&nbsp;</span>
-            <span  ng-click="connectBle(device.address)">{{device.name}}</span>
+            <span class="glyphicon glyphicon-lock">&nbsp;</span>
+            <span>{{device.name}}</span>
           </a>
 
         </ion-list>
