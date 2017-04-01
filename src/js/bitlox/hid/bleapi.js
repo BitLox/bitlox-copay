@@ -1,83 +1,77 @@
 (function(window, angular, chrome, async, ProtoBuf, ByteBuffer, cordova, evothings, device) {
-    'use strict';
+  'use strict';
 
 
-    angular.module('hid')
-        .service('bleapi', BleApi);
+  angular.module('hid')
+      .service('bleapi', BleApi);
 
-    BleApi.$inject = ['$rootScope','$q', '$timeout', '$interval','hidCommands'];
+  BleApi.$inject = ['$rootScope','$q', '$timeout', '$interval','hidCommands'];
 
-    function BleApi($rootScope,$q,$timeout,$interval, hidCommands) {
-        this.$q = $q;
-        this.$timeout = $timeout;
-        this.$interval = $interval;
-        this.$scope = $rootScope.$new();
-        this.$scope.status = BleApi.STATUS_DISCONNECTED;
-        this.$scope.knownDevicesList = {}
-        this.deviceCommands = hidCommands;
+  function BleApi($rootScope,$q,$timeout,$interval, hidCommands) {
+      this.$q = $q;
+      this.$timeout = $timeout;
+      this.$interval = $interval;
+      this.$scope = $rootScope.$new();
+      this.$scope.status = BleApi.STATUS_DISCONNECTED;
+      this.$scope.knownDevices = {}
+      this.deviceCommands = hidCommands;
 
-        // Handles to characteristics and descriptor for reading and
-      	// writing data from/to the Arduino using the BLE shield.
-      	this.characteristicRead = null;
-      	this.characteristicWrite = null;
-      	this.descriptorNotification = null;
-      	this.pinTheFirst = 0;
-      	this.pinFirstDecline = 0;
-      	this.characteristicName = null;
-        this.selectedDevice = {};
-        this.deviceHandle = null;
+      // Handles to characteristics and descriptor for reading and
+    	// writing data from/to the Arduino using the BLE shield.
+    	this.characteristicRead = null;
+    	this.characteristicWrite = null;
+    	this.descriptorNotification = null;
+    	this.pinTheFirst = 0;
+    	this.pinFirstDecline = 0;
+    	this.characteristicName = null;
+      this.deviceHandle = null;
 
-		}
-    BleApi.STATUS_SCANNING     = BleApi.prototype.STATUS_SCANNING = "scanning";
-    BleApi.STATUS_DISCONNECTED     = BleApi.prototype.STATUS_DISCONNECTED = "disconnected";
-    BleApi.STATUS_CONNECTED        = BleApi.prototype.STATUS_CONNECTED = "connected";
-    BleApi.STATUS_CONNECTING       = BleApi.prototype.STATUS_CONNECTING = "connecting";
-    BleApi.STATUS_READING          = BleApi.prototype.STATUS_READING = "reading";
-    BleApi.STATUS_WRITING          = BleApi.prototype.STATUS_WRITING = "writing";
+	}
+  BleApi.STATUS_SCANNING     = BleApi.prototype.STATUS_SCANNING = "scanning";
+  BleApi.STATUS_DISCONNECTED     = BleApi.prototype.STATUS_DISCONNECTED = "disconnected";
+  BleApi.STATUS_CONNECTED        = BleApi.prototype.STATUS_CONNECTED = "connected";
+  BleApi.STATUS_CONNECTING       = BleApi.prototype.STATUS_CONNECTING = "connecting";
+  BleApi.STATUS_READING          = BleApi.prototype.STATUS_READING = "reading";
+  BleApi.STATUS_WRITING          = BleApi.prototype.STATUS_WRITING = "writing";
 
-    // don't load BLE for chrome app
-    if(chrome) {
-      return false;
-    }
   /*
    * The BLE plugin is loaded asynchronously so the ble
    * variable is set in the onDeviceReady handler.
    */
 
-  	var appVersion = "2.1.16";
-      // "globals"
-  	var ble = null;
-  	var incomingData = '';
-  	var dataAlmostReady = false;
-  	var dataReady = false;
-  	var payloadSize = 0;
-  	var	vibrationEnabled = true;
-  	var scriptsToReplace = [];
-  	var BulkString;
+	var appVersion = "2.1.16";
+    // "globals"
+	var ble = null;
+	var incomingData = '';
+	var dataAlmostReady = false;
+	var dataReady = false;
+	var payloadSize = 0;
+	var	vibrationEnabled = true;
+	var scriptsToReplace = [];
+	var BulkString;
+  var incoming = '';
+  var prevsD = '';
+  var plugin;
+  var result;
+  var path;
+  var deviceUnplugged = false;
+  var deviceOpen = false;
+  var edge = false;
+	var globalPINstatus = null;
+	var pinTheFirst = '';
+	var currentCommand = '';
+	var readyToggle = false;
+	var displayMode = '';
+	var indexToBeUsedToSend = '';
+	var tempTXglobal = '';
+  var platform;
 
-      var incoming = '';
-      var prevsD = '';
-      var plugin;
-      var result;
-      var path;
-      var deviceUnplugged = false;
-      var deviceOpen = false;
-      var edge = false;
-  	var globalPINstatus = null;
-  	var pinTheFirst = '';
-  	var currentCommand = '';
-  	var readyToggle = false;
-  	var displayMode = '';
-  	var indexToBeUsedToSend = '';
-  	var tempTXglobal = '';
-    var platform;
-
-  	var baseUrl = 'https://bitlox.io/api';
+	var baseUrl = 'https://bitlox.io/api';
 
 
-  	var serverURL = 'https://insight.bitpay.com/api';
-  	var serverURLio = 'http://bitlox.io/api';
-  // 	        http://bitlox.io/api/addr/17XLaSzT7ZpzEJmFvnqEFycoEUXDaXkPcp/totalReceived',{}, 'text')
+	var serverURL = 'https://insight.bitpay.com/api';
+	var serverURLio = 'http://bitlox.io/api';
+// 	        http://bitlox.io/api/addr/17XLaSzT7ZpzEJmFvnqEFycoEUXDaXkPcp/totalReceived',{}, 'text')
 
 
 
@@ -86,571 +80,575 @@
   *	Utility functions
   */
 
-      function pausecomp(milliseconds) {
-          var start = new Date().getTime();
-          for (var i = 0; i < 1e7; i++) {
-              if ((new Date().getTime() - start) > milliseconds) {
-                  break;
-              }
+  function pausecomp(milliseconds) {
+      var start = new Date().getTime();
+      for (var i = 0; i < 1e7; i++) {
+          if ((new Date().getTime() - start) > milliseconds) {
+              break;
           }
       }
+  }
 
 
-      String.prototype.chunk = function(n) {
-          if (typeof n == 'undefined') n = 2;
-          return this.match(RegExp('.{1,' + n + '}', 'g'));
-      };
+  String.prototype.chunk = function(n) {
+      if (typeof n == 'undefined') n = 2;
+      return this.match(RegExp('.{1,' + n + '}', 'g'));
+  };
 
-      var padding = Array(64).join('0');
+  var padding = Array(64).join('0');
 
 
   // 	Now with padding to ensure the full two character hex is returned
-      function d2h(d) {
-      	var padding = 2;
-          var hex = Number(d).toString(16);
-      	padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
+  function d2h(d) {
+  	var padding = 2;
+      var hex = Number(d).toString(16);
+  	padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
 
-  		while (hex.length < padding) {
-  			hex = "0" + hex;
-  		}
-  		return hex;
-      }
+	while (hex.length < padding) {
+		hex = "0" + hex;
+	}
+	return hex;
+  }
 
-      function h2d(h) {
-          return parseInt(h, 16);
-      }
+  function h2d(h) {
+      return parseInt(h, 16);
+  }
 
-      function toHex(str) {
-          var hex = '';
-          for (var i = 0; i < str.length; i++) {
-              hex += '' + str.charCodeAt(i).toString(16);
-          }
-          return hex;
+  function toHex(str) {
+      var hex = '';
+      for (var i = 0; i < str.length; i++) {
+          hex += '' + str.charCodeAt(i).toString(16);
       }
+      return hex;
+  }
 
-      function toHexPadded40bytes(str) {
-          var hex = '';
-          var targetlength = 40;
-  		var bytes;
-          if (str.length <= targetlength) {
-              length = str.length;
-          }
-  		hex = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes(str));
-          while (hex.length < (targetlength*2)) {
-              hex += '20';
-          }
-          return hex;
+  function toHexPadded40bytes(str) {
+      var hex = '';
+      var targetlength = 40;
+	var bytes;
+      if (str.length <= targetlength) {
+          length = str.length;
       }
+	hex = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes(str));
+      while (hex.length < (targetlength*2)) {
+          hex += '20';
+      }
+      return hex;
+  }
 
-      function toHexUTF8(str) {
-          var hex = '';
-  		hex = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes(str));
-          return hex;
-      }
+  function toHexUTF8(str) {
+      var hex = '';
+	hex = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes(str));
+      return hex;
+  }
 
-      function hex2a(hexx) {
-          var hex = hexx.toString(); //force conversion
-          var str = '';
-          for (var i = 0; i < hex.length; i += 2)
-              str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-          return str;
-      }
+  function hex2a(hexx) {
+      var hex = hexx.toString(); //force conversion
+      var str = '';
+      for (var i = 0; i < hex.length; i += 2)
+          str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+      return str;
+  }
 
   /*************************
   *	Utility functions END
   */
 
-      BleApi.prototype.initialize = function() {
-        var bleapi = this
-    		document.addEventListener(
-    			'deviceready',
-          function() {
-            platform = window.device.platform.toLowerCase()
-            bleapi.$scope.bleReady = true;
-          },false);
-    	}
-      /**
-       *	Takes whole message strings and preps them for consumption by the processResults function
-      */
-    	BleApi.prototype.finalPrepProcess = function(dataToProcess)
-    	{
-    			if (dataToProcess.match(/2323/)) {
-    				var headerPosition = dataToProcess.search(2323);
-    				var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
-    				document.getElementById("command").innerHTML = command;
-    				var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
-    				console.log('PayloadSize: ' + payloadSize2);
-    				var decPayloadSize = parseInt(payloadSize2, 16);
-    				console.log('decPayloadSize: ' + decPayloadSize);
-    				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+  BleApi.prototype.initialize = function() {
+    var bleapi = this
+		document.addEventListener(
+			'deviceready',
+      function() {
+        platform = window.device.platform.toLowerCase()
+        bleapi.$scope.bleReady = true;
+      },false);
+	}
 
-    				document.getElementById("payLoadSize").innerHTML = payloadSize2;
-    				var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
-    				document.getElementById("payload_HEX").innerHTML = payload;
-    				document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
-    				console.log('ready to process: ' + dataToProcess);
-    				processResults(command, payloadSize2, payload);
-    			}
-    	}
+	BleApi.prototype.displayStatus = function(status)
+	{
+		console.log('Status: '+status);
+	}
+  BleApi.prototype.getServices = function() {
+    var bleapi = this
 
-    	BleApi.prototype.displayStatus = function(status)
-    	{
-    		console.log('Status: '+status);
-    	}
-      BleApi.prototype.getServices = function(deviceHandle) {
-        var bleapi = this
-    		bleapi.displayStatus('Reading services...');
-        // 		alert('deviceHandle: ' + deviceHandle);
-    		evothings.ble.readAllServiceData(deviceHandle, function(services)
-    		{
-    			// Find handles for characteristics and descriptor needed.
-    			for (var si in services)
-    			{
-    				var service = services[si];
-            // 				alert(service);
-    				for (var ci in service.characteristics)
-    				{
-    					var characteristic = service.characteristics[ci];
+		bleapi.displayStatus('Reading services...');
 
-    					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
-    					{
-    						bleapi.characteristicRead = characteristic.handle;
-    					}
-    					else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
-    					{
-    						bleapi.characteristicWrite = characteristic.handle;
-    					}
-    					else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
-    					{
-    						bleapi.characteristicName = characteristic.handle;
-    					}
+		evothings.ble.readAllServiceData(bleapi.deviceHandle, function(services)
+		{
+			// Find handles for characteristics and descriptor needed.
+			for (var si in services)
+			{
+				var service = services[si];
+        for (var ci in service.characteristics)
+				{
+					var characteristic = service.characteristics[ci];
 
-    					for (var di in characteristic.descriptors)
-    					{
-    						var descriptor = characteristic.descriptors[di];
+					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
+					{
+            bleapi.characteristicRead = evothings.ble.getCharacteristic(service, characteristic.uuid)
+						// bleapi.characteristicRead = characteristic.handle;
+					}
+					else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
+					{
+            bleapi.characteristicWrite = evothings.ble.getCharacteristic(service, characteristic.uuid)
 
-    						if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
-    							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
-    						{
-    							bleapi.descriptorNotification = descriptor.handle;
-    						}
-    						if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
-    							descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
-    						{
-    							bleapi.descriptorName = descriptor.handle;
-    						}
-    					}
-    				}
-    			}
+						// bleapi.characteristicWrite = characteristic.handle;
+					}
+					else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
+					{
+            bleapi.characteristicName = evothings.ble.getCharacteristic(service, characteristic.uuid)
 
-    			if (bleapi.characteristicRead && bleapi.characteristicWrite && bleapi.descriptorNotification && bleapi.characteristicName && bleapi.descriptorName)
-    			{
-    				console.log('RX/TX services found.');
-            bleapi.displayStatus('RX/TX services found!');
-    				bleapi.startReading(deviceHandle);
-    			}
-    			else
-    			{
-    				bleapi.displayStatus('ERROR: RX/TX services not found!');
-    			}
-    		},
-    		function(errorCode)
-    		{
-    			bleapi.displayStatus('readAllServiceData error: ' + errorCode);
-    		});
-    	}
+						// bleapi.characteristicName = characteristic.handle;
+					}
 
-      /**
-      * 	Reads the datastream after subscribing to notifications.
-      * 	Bytes are read off one at a time and assembled into a frame which is then passed to
-      * 	be processed. The passed frame may not contain the whole message, which will be completed
-      * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
-      */
-    	BleApi.prototype.startReading = function(deviceHandle)
-    	{
-        var bleapi = this
-    		bleapi.displayStatus('Enabling notifications...');
+					for (var di in characteristic.descriptors)
+					{
+						var descriptor = characteristic.descriptors[di];
 
-    		var sD = '';
-    		console.log('data at beginning: ' + sD);
+						if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
+							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
+						{
+							bleapi.descriptorNotification = descriptor.handle;
+						}
+						if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
+							descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
+						{
+							bleapi.descriptorName = descriptor.handle;
+						}
+					}
+				}
+			}
 
-    		// Turn notifications on.
-    		bleapi.bleWrite(
-    			'writeDescriptor',
-    			deviceHandle,
-    			bleapi.descriptorNotification,
-    			new Uint8Array([1,0]));
+			if (bleapi.characteristicRead && bleapi.characteristicWrite && bleapi.descriptorNotification && bleapi.characteristicName && bleapi.descriptorName)
+			{
+				console.log('RX/TX services found.');
+        bleapi.displayStatus('RX/TX services found!');
+				bleapi.startReading();
+			}
+			else
+			{
+				bleapi.displayStatus('ERROR: RX/TX services not found!');
+			}
+		},
+		function(errorCode)
+		{
+			bleapi.displayStatus('readAllServiceData error: ' + errorCode);
+		});
+	}
 
-    		// Start reading notifications.
-    		evothings.ble.enableNotification(
-    			deviceHandle,
-    			bleapi.characteristicRead,
-    			function(data)
-    			{
-    				bleapi.displayStatus('Active');
-    				var buf = new Uint8Array(data);
-    				for (var i = 0 ; i < buf.length; i++)
-    				{
-    					sD = sD.concat(d2h(buf[i]).toString('hex'));
-    				};
+  /**
+  * 	Reads the datastream after subscribing to notifications.
+  * 	Bytes are read off one at a time and assembled into a frame which is then passed to
+  * 	be processed. The passed frame may not contain the whole message, which will be completed
+  * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
+  */
+	BleApi.prototype.startReading = function()
+	{
+    var bleapi = this
+		bleapi.displayStatus('Enabling notifications...');
 
-    				console.log('data semifinal: ' + sD);
-    				for (var i = 0 ; i < buf.length; i++)
-    				{
-    					buf[i] = 0;
-    				};
-    				bleapi.app.sendToProcess(sD);
-    				sD = '';
-    				if(platform == "android")
-    				{
-    					pausecomp(10);
-    				}
+		var sD = '';
+		console.log('data at beginning: ' + sD);
 
-    			},
-    			function(errorCode)
-    			{
-    				bleapi.displayStatus('enableNotification error: ' + errorCode);
-    			});
-    		bleapi.displayStatus('Ready');
-    	}
+		// Turn notifications on.
+		bleapi.bleWrite(
+			'writeDescriptor',
+			bleapi.deviceHandle,
+			bleapi.descriptorNotification,
+			new Uint8Array([1,0]));
 
-      /**
-      * 	Assembles whole message strings
-      * 	The raw data is going to be coming in in possible uncompleted parts.
-      * 	We will sniff for the 2323 and commence storing data from there.
-      * 	The payload size is grabbed from the first 2323 packet to determine when we are done and
-      * 	may send the received message onwards.
-      */
-    	BleApi.prototype.sendToProcess = function(rawData)
-    	{
-    		console.log('data final: ' + rawData);
-    		var rawSize = rawData.length;
-    		console.log('rawSize: ' + rawSize);
-    		console.log('incomingData at top ' + incomingData);
 
-    		// Grab the incoming frame and add it to the global incomingData
-            // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
-    		if (rawData.match(/2323/) || dataReady == true)
-    		{
-    			console.log('or match ');
-    			incomingData = incomingData.concat(rawData);
-    			console.log('incomingData ' + incomingData);
-
-    // 			Find out how long the total message is. This must be stored globally as the
-    // 			sendToProcess routine is called repeatedly blanking local variables
-    			if (incomingData.match(/2323/))
-    			{
-    				console.log('header match');
-    				dataReady = true;
-    				var headerPosition = incomingData.search(2323)
-    				payloadSize = incomingData.substring(headerPosition + 8, headerPosition + 16)
-    				console.log('PayloadSize hex: ' + payloadSize);
-    				var decPayloadSize = parseInt(payloadSize, 16);
-    				console.log('decPayloadSize: ' + decPayloadSize);
-    				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
-    			}
-    		}
-    // 		Once the incomingData has grown to the length declared, send it onwards.
-    		if(incomingData.length === ((decPayloadSize*2) + 16))
-    		{
-    			var dataToSendOut = incomingData;
-    			incomingData = '';
-    			dataReady = false;
-    			this.finalPrepProcess(dataToSendOut);
-    		}
-    	}
-      // 	Actual write function
-      BleApi.prototype.bleWrite = function(writeFunc, deviceHandle, handle, value)
-      {
-        if (handle)
+    // Start reading notifications.
+    evothings.ble.enableNotification(
+      bleapi.deviceHandle,
+      bleapi.characteristicRead,
+      function(data) {
+        bleapi.displayStatus('Active');
+        var buf = new Uint8Array(data);
+        for (var i = 0 ; i < buf.length; i++)
         {
-          evothings.ble[writeFunc](
-            deviceHandle,
-            handle,
-            value,
-            function()
-            {
-    // 					alert(writeFunc + ': ' + handle + ' success.');
-              console.log(writeFunc + ': ' + handle + ' success.');
-            },
-            function(errorCode)
-            {
-    // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
+          sD = sD.concat(d2h(buf[i]).toString('hex'));
+        };
 
-              console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
-            });
-        }
-      }
-
-      BleApi.prototype.listWallets = function() {
-        return this.write(this.deviceCommands.list_wallets);
-      }
-
-      BleApi.prototype.startScanNew = function() {
-        var bleapi = this
-    	  evothings.ble.stopScan();
-    		this.displayStatus('Scanning...');
-    		evothings.ble.startScan(
-    			function(device)
-    			{
-    				// Report success. Sometimes an RSSI of +127 is reported.
-    				// We filter out these values here.
-    				if (device.rssi <= 0)
-    				{
-    					bleapi.deviceFound(device, null);
-    				}
-    			},
-    			function(errorCode)
-    			{
-            console.error("BITLOX BLE SCAN ERROR", errorCode)
-    				// Report error.
-    				bleapi.deviceFound(null, errorCode);
-    			}
-    		);
-    	}
-      BleApi.prototype.deviceFound = function(device, errorCode)  {
-      	if (device)
-      	{
-      		// Set timestamp for device (this is used to remove
-      		// inactive devices).
-      		device.timeStamp = Date.now();
-      		// Insert the device into table of found devices.
-          var bleapi = this
-          this.$scope.$apply(function() {
-            bleapi.$scope.knownDevicesList[device.address] = device;
-            //this next line goes nuts in logcat. use wisely
-            console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( bleapi.$scope.knownDevicesList[device.address].address));
-          })
-
-      	}
-      	else if (errorCode)
-      	{
-      		this.displayStatus('Scan Error: ' + errorCode);
-      	}
-      }
-      BleApi.prototype.connect = function(address)	{
-        var bleapi = this
-    		evothings.ble.stopScan();
-    		this.displayStatus('Connecting...');
-    		evothings.ble.connect(
-    			address,
-    			function(connectInfo)
-    			{
-    				if (connectInfo.state == 2) // Connected
-    				{
-    					bleapi.displayStatus('Connected');
-    					if(platform == "android")
-    					{
-                console.warn('waiting for android to think')
-    						pausecomp(1000);
-    					}
-    					bleapi.deviceHandle = connectInfo.deviceHandle;
-    					bleapi.getServices(connectInfo.deviceHandle);
-    // 					connectedDevices[address] = address;
-    				}
-    				else
-    				{
-    					bleapi.displayStatus('Disconnected');
-    					pausecomp(50);
-    					bleapi.connect(address);
-    				}
-    			},
-    			function(errorCode)
-    			{
-    				bleapi.displayStatus('connect: ' + errorCode);
-    			});
-          this.listWallets();
-    	}
-      // old sliceAndWrite64, 'data' is a command constant
-      BleApi.prototype.write = function(data) {
-        if(this.$scope.status !== BleApi.STATUS_CONNECTED) {
-          // return if the device isn't currently idle
-          if(this.$scope.status == BleApi.STATUS_DISCONNECTED) {
-            return this.$q.reject(new Error("Device is not connected"))
-          }
-          return this.$q.reject(new Error("Device is busy"))
-        }
-        var chunkSize;
+        console.log('data semifinal: ' + sD);
+        for (var i = 0 ; i < buf.length; i++)
+        {
+          buf[i] = 0;
+        };
+        bleapi.app.sendToProcess(sD);
+        sD = '';
         if(platform == "android")
         {
-          chunkSize = 40;  // android
-          console.log('ChunkSize set to: ' + chunkSize);
+          pausecomp(10);
         }
-        else
+        bleapi.listWallets()
+
+      },
+      function(errorCode) {
+        bleapi.displayStatus('enableNotification error: ' + errorCode);
+      });
+    bleapi.displayStatus('Ready');
+	}
+
+  // 	Actual write function
+  BleApi.prototype.bleWrite = function(writeFunc, deviceHandle, handle, value, cb)
+  {
+    if (handle)
+    {
+      evothings.ble[writeFunc](
+        deviceHandle,
+        handle,
+        value,
+        function()
         {
-          chunkSize = 128;
-          console.log('ChunkSize set to: ' + chunkSize);
-        }
-
-        var thelength = data.length;
-        var iterations = Math.floor(thelength/chunkSize);
-        console.log('iterations : ' + iterations);
-        var remainder  = thelength%chunkSize;
-        console.log('remainder : ' + remainder);
-        var k = 0;
-        var m = 0;
-        var transData = [];
-
-        // 		chop the command up into k pieces
-        for(k = 0; k < iterations; k++)
+// 					alert(writeFunc + ': ' + handle + ' success.');
+          console.log(writeFunc + ': ' + handle + ' success.');
+          if(cb) cb();
+        },
+        function(errorCode)
         {
-          transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
-          console.log("k " + k);
-        };
+// 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
 
-        console.log("k out " + k);
+          console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
+          if(cb) cb();
+        });
+    }
+  }
 
-        // 		deal with the leftover, backfilling the frame with zeros
-        if(remainder != 0)
-        {
-          transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
-          for (m = remainder; m < chunkSize; m++)
-          {
-            transData[k] = transData[k].concat("0");
-          }
-          console.log("remainder " + transData[k]);
+  BleApi.prototype.listWallets = function() {
+    return this.write(this.deviceCommands.list_wallets);
+  }
 
-          console.log("remainder length " + transData[k].length);
-        };
+  BleApi.prototype.startScanNew = function() {
+    var bleapi = this
+	  evothings.ble.stopScan();
+		this.displayStatus('Scanning...');
+		evothings.ble.startScan(
+			function(device)
+			{
+				// Report success. Sometimes an RSSI of +127 is reported.
+				// We filter out these values here.
+				if (device.rssi <= 0)
+				{
+					bleapi.deviceFound(device, null);
+				}
+			},
+			function(errorCode)
+			{
+        console.error("BITLOX BLE SCAN ERROR", errorCode)
+				// Report error.
+				bleapi.deviceFound(null, errorCode);
+			}
+		);
+	}
+  BleApi.prototype.deviceFound = function(device, errorCode)  {
+  	if (device)
+  	{
+  		// Set timestamp for device (this is used to remove
+  		// inactive devices).
+  		device.timeStamp = Date.now();
+  		// Insert the device into table of found devices.
+      var bleapi = this
+      bleapi.$scope.knownDevices[device.address] = device;
+      //this next line goes nuts in logcat. use wisely
+      // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( bleapi.$scope.knownDevices[device.address].address));
+  	}
+  	else if (errorCode)
+  	{
+  		this.displayStatus('Scan Error: ' + errorCode);
+  	}
+  }
+  BleApi.prototype.connect = function(address)	{
+    var bleapi = this
+		evothings.ble.stopScan();
+		this.displayStatus('Connecting...');
+		evothings.ble.connect(
+			address,
+			function(device)
+			{
+				if (device.state == 2) // Connected
+				{
+					bleapi.displayStatus('Connected');
+					if(platform == "android")
+					{
+            console.warn('waiting for android to think')
+						pausecomp(1000);
+					}
+					bleapi.deviceHandle = device.deviceHandle;
+					bleapi.getServices();
+// 					connectedDevices[address] = address;
+				}
+				else
+				{
+					bleapi.displayStatus('Disconnected');
+					pausecomp(50);
+					bleapi.connect(address);
+				}
+			},
+			function(errorCode)
+			{
+				bleapi.displayStatus('connect: ' + errorCode);
+			});
+	}
+  // old sliceAndWrite64, 'data' is a command constant
+  BleApi.prototype.write = function(data) {
+    if(this.$scope.status !== BleApi.STATUS_CONNECTED) {
+      // return if the device isn't currently idle
+      if(this.$scope.status == BleApi.STATUS_DISCONNECTED) {
+        return this.$q.reject(new Error("Device is not connected"))
+      }
+      return this.$q.reject(new Error("Device is busy"))
+    }
+    var chunkSize;
+    if(platform == "android")
+    {
+      chunkSize = 40;  // android
+      console.log('ChunkSize set to: ' + chunkSize);
+    }
+    else
+    {
+      chunkSize = 128;
+      console.log('ChunkSize set to: ' + chunkSize);
+    }
 
-        // 		The BLE writer takes ByteBuffer arrays
-        var ByteBuffer = dcodeIO.ByteBuffer;
-        var j = 0;
-        var parseLength = 0;
-        console.log("transData.length " + transData.length);
-        for (j = 0; j< transData.length; j++)
-        {
-          parseLength = transData[j].length
+    var thelength = data.length;
+    var iterations = Math.floor(thelength/chunkSize);
+    console.log('iterations : ' + iterations);
+    var remainder  = thelength%chunkSize;
+    console.log('remainder : ' + remainder);
+    var k = 0;
+    var m = 0;
+    var transData = [];
 
-          var bb = new ByteBuffer();
-          // 	console.log("utx length = " + parseLength);
-          var i;
-          for (i = 0; i < parseLength; i += 2) {
-            var value = transData[j].substring(i, i + 2);
-            // 	console.log("value = " + value);
-            var prefix = "0x";
-            var together = prefix.concat(value);
-            // 	console.log("together = " + together);
-            var result = parseInt(together);
-            // 	console.log("result = " + result);
+    // 		chop the command up into k pieces
+    for(k = 0; k < iterations; k++)
+    {
+      transData[k] = data.slice(k*chunkSize,chunkSize+(k*chunkSize));
+      console.log("k " + k);
+    };
 
-            bb.writeUint8(result);
-          }
-          bb.flip();
+    console.log("k out " + k);
 
-          BleApi.app.passToWrite(bb);
-          if(platform == "android")
-          {
-            pausecomp(100);
-          }
-        }
-        return this.$q.resolve(transData.length);
-        // return deferred.promise;
-      };
+    // 		deal with the leftover, backfilling the frame with zeros
+    if(remainder != 0)
+    {
+      transData[k] = data.slice((k)*chunkSize,remainder+((k)*chunkSize));
+      for (m = remainder; m < chunkSize; m++)
+      {
+        transData[k] = transData[k].concat("0");
+      }
+      console.log("remainder " + transData[k]);
+
+      console.log("remainder length " + transData[k].length);
+    };
+
+    // 		The BLE writer takes ByteBuffer arrays
+    var ByteBuffer = dcodeIO.ByteBuffer;
+    var j = 0;
+    var parseLength = 0;
+    console.log("transData.length " + transData.length);
+    for (j = 0; j< transData.length; j++)
+    {
+      parseLength = transData[j].length
+
+      var bb = new ByteBuffer();
+      // 	console.log("utx length = " + parseLength);
+      var i;
+      for (i = 0; i < parseLength; i += 2) {
+        var value = transData[j].substring(i, i + 2);
+        // 	console.log("value = " + value);
+        var prefix = "0x";
+        var together = prefix.concat(value);
+        // 	console.log("together = " + together);
+        var result = parseInt(together);
+        // 	console.log("result = " + result);
+
+        bb.writeUint8(result);
+      }
+      bb.flip();
+
+      BleApi.app.passToWrite(bb);
+      if(platform == "android")
+      {
+        pausecomp(100);
+      }
+    }
+    return this.$q.resolve(transData.length);
+    // return deferred.promise;
+  };
+
+  /**
+  * 	Assembles whole message strings
+  * 	The raw data is going to be coming in in possible uncompleted parts.
+  * 	We will sniff for the 2323 and commence storing data from there.
+  * 	The payload size is grabbed from the first 2323 packet to determine when we are done and
+  * 	may send the received message onwards.
+  */
+	BleApi.prototype.sendToProcess = function(rawData)
+	{
+		console.log('data final: ' + rawData);
+		var rawSize = rawData.length;
+		console.log('rawSize: ' + rawSize);
+		console.log('incomingData at top ' + incomingData);
+
+		// Grab the incoming frame and add it to the global incomingData
+        // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
+		if (rawData.match(/2323/) || dataReady == true)
+		{
+			console.log('or match ');
+			incomingData = incomingData.concat(rawData);
+			console.log('incomingData ' + incomingData);
+
+// 			Find out how long the total message is. This must be stored globally as the
+// 			sendToProcess routine is called repeatedly blanking local variables
+			if (incomingData.match(/2323/))
+			{
+				console.log('header match');
+				dataReady = true;
+				var headerPosition = incomingData.search(2323)
+				payloadSize = incomingData.substring(headerPosition + 8, headerPosition + 16)
+				console.log('PayloadSize hex: ' + payloadSize);
+				var decPayloadSize = parseInt(payloadSize, 16);
+				console.log('decPayloadSize: ' + decPayloadSize);
+				console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+			}
+		}
+// 		Once the incomingData has grown to the length declared, send it onwards.
+		if(incomingData.length === ((decPayloadSize*2) + 16))
+		{
+			var dataToSendOut = incomingData;
+			incomingData = '';
+			dataReady = false;
+			this.finalPrepProcess(dataToSendOut);
+		}
+	}
+  /**
+   *	Takes whole message strings and preps them for consumption by the processResults function
+  */
+  BleApi.prototype.finalPrepProcess = function(dataToProcess)
+  {
+      if (dataToProcess.match(/2323/)) {
+        var headerPosition = dataToProcess.search(2323);
+        var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
+        document.getElementById("command").innerHTML = command;
+        var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
+        console.log('PayloadSize: ' + payloadSize2);
+        var decPayloadSize = parseInt(payloadSize2, 16);
+        console.log('decPayloadSize: ' + decPayloadSize);
+        console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+
+        document.getElementById("payLoadSize").innerHTML = payloadSize2;
+        var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
+        document.getElementById("payload_HEX").innerHTML = payload;
+        document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
+        console.log('ready to process: ' + dataToProcess);
+        processResults(command, payloadSize2, payload);
+      }
+  }
 
 
 
 
 
 
-        	var walletsListForPicker =[];
-        	var walletNameListForPicker = [];
+	var walletsListForPicker =[];
+	var walletNameListForPicker = [];
 
 
   function processResults(command, length, payload) {
-          var ProtoBuf = dcodeIO.ProtoBuf;
-          var ByteBuffer = dcodeIO.ByteBuffer;
-          var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-              Device = builder.build();
+    var ProtoBuf = dcodeIO.ProtoBuf;
+    var ByteBuffer = dcodeIO.ByteBuffer;
+    var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
+        Device = builder.build();
 
-              // 			console.log("RX: " + command);
-          command = command.substring(2, 4)
-          //  			window.plugins.toast.show('to process: ' + command, 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-          console.log('to process: ' + command + ' ' + length + ' ' + payload);
-          switch (command) {
-              case "3A": // initialize
-              //                     var featuresMessage = Device.Features.decodeHex(payload);
-              //                     console.log("vendor: " + featuresMessage.vendor);
-              //                     console.log("config: " + featuresMessage.config);
-              //                     console.log("device name: " + featuresMessage.device_name);
-              // 					document.getElementById("device_name").innerHTML = featuresMessage.device_name;
-                  break;
+        // 			console.log("RX: " + command);
+    command = command.substring(2, 4)
+    //  			window.plugins.toast.show('to process: ' + command, 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+    console.log('to process: ' + command + ' ' + length + ' ' + payload);
+    switch (command) {
+      case "3A": // initialize
+      //                     var featuresMessage = Device.Features.decodeHex(payload);
+      //                     console.log("vendor: " + featuresMessage.vendor);
+      //                     console.log("config: " + featuresMessage.config);
+      //                     console.log("device name: " + featuresMessage.device_name);
+      // 					document.getElementById("device_name").innerHTML = featuresMessage.device_name;
+      break;
 
-              case "30": // public address
-                  ecdsa = payload.substring(8, 74);
-                  // 					ecdsa = payload.substring(8,138); //uncompressed
-                  // 					console.log('ecdsa from device ' + ecdsa);
-                  document.getElementById("ecdsa").innerHTML = ecdsa;
-                  ripe160of2 = payload.substring(78, 118);
-                  // 					ripe160of2 = payload.substring(142,182);
-                  document.getElementById("ripe160of2").innerHTML = ripe160of2;
-                  // 					console.log('RIPE from device ' + ripe160of2);
-                  pub58 = ecdsaToBase58(ecdsa);
-                  document.getElementById("address_58").innerHTML = pub58;
-                  break;
+      case "30": // public address
+          ecdsa = payload.substring(8, 74);
+          // 					ecdsa = payload.substring(8,138); //uncompressed
+          // 					console.log('ecdsa from device ' + ecdsa);
+          document.getElementById("ecdsa").innerHTML = ecdsa;
+          ripe160of2 = payload.substring(78, 118);
+          // 					ripe160of2 = payload.substring(142,182);
+          document.getElementById("ripe160of2").innerHTML = ripe160of2;
+          // 					console.log('RIPE from device ' + ripe160of2);
+          pub58 = ecdsaToBase58(ecdsa);
+          document.getElementById("address_58").innerHTML = pub58;
+      break;
 
-              case "31": // number of addresses in loaded wallet
-                  numberOfAddresses = payload.substring(2, 4);
-                  // 					console.log('# of addresses ' + numberOfAddresses);
-                  document.getElementById("numberOfAddresses").innerHTML = numberOfAddresses;
-                  break;
+      case "31": // number of addresses in loaded wallet
+          numberOfAddresses = payload.substring(2, 4);
+          // 					console.log('# of addresses ' + numberOfAddresses);
+          document.getElementById("numberOfAddresses").innerHTML = numberOfAddresses;
+          break;
 
-              case "32": // Wallet list
-                  var walletMessage = Device.Wallets.decodeHex(payload);
+      case "32": // Wallet list
+        var walletMessage = Device.Wallets.decodeHex(payload);
 				walletsListForPicker = [];
 				walletNameListForPicker = [];
 
-                  console.log("number of wallets: " + walletMessage.wallet_info.length);
-                  var walletsIndex;
-                  for (walletsIndex=0; walletsIndex < walletMessage.wallet_info.length; walletsIndex++){
+        console.log("number of wallets: " + walletMessage.wallet_info.length);
+        var walletsIndex;
+        for (walletsIndex=0; walletsIndex < walletMessage.wallet_info.length; walletsIndex++){
 					walletsListForPicker.push({ text: walletMessage.wallet_info[walletsIndex].wallet_name.toString("utf8"), value: walletMessage.wallet_info[walletsIndex].wallet_number });
 					walletNameListForPicker.push(walletMessage.wallet_info[walletsIndex].wallet_name.toString("utf8"));
 					console.log("wallet structure number: " + walletMessage.wallet_info[walletsIndex].wallet_number);
 					console.log("wallet structure name: " + walletMessage.wallet_info[walletsIndex].wallet_name.toString("utf8"));
 					console.log("wallet structure uuid: " + walletMessage.wallet_info[walletsIndex].wallet_uuid.toString("hex"));
 					console.log("wallet version: " + walletMessage.wallet_info[walletsIndex].version);
-                  }
+        }
 
-              	var securedWallet = ''
-                  $("#wallet_table").find("tr").remove();
-                  var walletDataArray = "";
-                  walletDataArray = walletMessage.wallet_info;
-                  var index;
-                  for (index = 0; index < walletDataArray.length; index++) {
-                  	if(	walletMessage.wallet_info[index].version == 3)
-                  	{
-                  		securedWallet = '<span class="glyphicon glyphicon-lock h5"></span>&nbsp;'
-                  	}
-                      var wallet_number = walletMessage.wallet_info[index].wallet_number;
-                      var wallet_name = walletMessage.wallet_info[index].wallet_name.toString("utf8");
-                      var row = '<tr id="wallet_' + wallet_number + '" class="wallet_row" data-number="'+ wallet_number +'" data-name="'+ wallet_name +'"><td class="iterator hidden" ></td><td class="address-field" id="name_' + wallet_number + '" style="cursor:pointer">' + securedWallet + '   ' + wallet_name +'</td></tr>';
-                      //                         var row = '<tr id="wallet_' + wallet_number + '" ><td class="iterator" >' + wallet_number + '</td><td class="address-field" id="name_' + wallet_number + '" style="cursor:pointer">' + securedWallet + wallet_name +'</td></tr>';
-                      $('#wallet_table').append(row);
-                      securedWallet = '';
-                  }
-                  $("#sign_transaction_with_device").attr('disabled',true);
-                  $("#rawSubmitBtn").attr('disabled',true);
-                  $("#renameWallet").attr('disabled',true);
-                  $("#sendButton").attr('disabled',true);
-                  $("#receiveButton").attr('disabled',true);
-                  $("#signMessageButton").attr('disabled',true);
-                  $("#transactionHistoryButton").attr('disabled',true);
-                  $('#list_wallets').attr('disabled',false);
-				$('.wallet_row').attr('disabled',false);
-                  $("#newWalletButton").attr('disabled',false);
+        var securedWallet = ''
+        $("#wallet_table").find("tr").remove();
+        var walletDataArray = "";
+        walletDataArray = walletMessage.wallet_info;
+        var index;
+        for (index = 0; index < walletDataArray.length; index++) {
+        	if(	walletMessage.wallet_info[index].version == 3)
+        	{
+        		securedWallet = '<span class="glyphicon glyphicon-lock h5"></span>&nbsp;'
+        	}
+            var wallet_number = walletMessage.wallet_info[index].wallet_number;
+            var wallet_name = walletMessage.wallet_info[index].wallet_name.toString("utf8");
+            var row = '<tr id="wallet_' + wallet_number + '" class="wallet_row" data-number="'+ wallet_number +'" data-name="'+ wallet_name +'"><td class="iterator hidden" ></td><td class="address-field" id="name_' + wallet_number + '" style="cursor:pointer">' + securedWallet + '   ' + wallet_name +'</td></tr>';
+            //                         var row = '<tr id="wallet_' + wallet_number + '" ><td class="iterator" >' + wallet_number + '</td><td class="address-field" id="name_' + wallet_number + '" style="cursor:pointer">' + securedWallet + wallet_name +'</td></tr>';
+            $('#wallet_table').append(row);
+            securedWallet = '';
+        }
+        $("#sign_transaction_with_device").attr('disabled',true);
+        $("#rawSubmitBtn").attr('disabled',true);
+        $("#renameWallet").attr('disabled',true);
+        $("#sendButton").attr('disabled',true);
+        $("#receiveButton").attr('disabled',true);
+        $("#signMessageButton").attr('disabled',true);
+        $("#transactionHistoryButton").attr('disabled',true);
+        $('#list_wallets').attr('disabled',false);
+        $('.wallet_row').attr('disabled',false);
+        $("#newWalletButton").attr('disabled',false);
 
-                  BleApi.displayStatus('Wallets listed');
-                  currentCommand = '';
-                  break;
+        BleApi.displayStatus('Wallets listed');
+        currentCommand = '';
+      break;
 
-              case "33": // Ping response
-                  var PingResponse = Device.PingResponse.decodeHex(payload);
-                  console.log(PingResponse);
-                  console.log('echo: ' + PingResponse.echoed_greeting + ' session ID: ' + PingResponse.echoed_session_id);
-                  break;
-              case "34": // success
-              	switch (currentCommand) {
-					case "deleteWallet":
+      case "33": // Ping response
+        var PingResponse = Device.PingResponse.decodeHex(payload);
+        console.log(PingResponse);
+        console.log('echo: ' + PingResponse.echoed_greeting + ' session ID: ' + PingResponse.echoed_session_id);
+      break;
+      case "34": // success
+        switch (currentCommand) {
+          case "deleteWallet":
 						BleApi.displayStatus('Wallet deleted');
 						$('#myTab a[href="#bip32"]').tab('show');
 
@@ -662,20 +660,20 @@
 						BleApi.displayStatus('Listing wallets');
 						currentCommand = '';
 						break;
-					case "renameWallet":
-						BleApi.displayStatus('Wallet renamed');
-						$('#myTab a[href="#bip32"]').tab('show');
+		      case "renameWallet":
+	          BleApi.displayStatus('Wallet renamed');
+            $('#myTab a[href="#bip32"]').tab('show');
 
-						window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-						$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
+            window.plugins.toast.show('Refreshing your wallet list', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+            $('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
 
-						BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
-      					$('#renameWallet').attr('disabled',false);
+            BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
+            $('#renameWallet').attr('disabled',false);
 
 						BleApi.displayStatus('Listing wallets');
 						currentCommand = '';
-						break;
-					case "newWallet":
+					break;
+		      case "newWallet":
 						window.plugins.toast.show('Refreshing your wallet list', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 
 						$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
@@ -685,14 +683,14 @@
 						BleApi.displayStatus('Listing refreshed');
 
 						currentCommand = '';
-						break;
+					break;
 					case "formatDevice":
 						window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 						BleApi.displayStatus('Ready');
 						BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
 						$('#myTab a[href="#bip32"]').tab('show');
 						currentCommand = '';
-						break;
+					break;
 					case "loadWallet":
 						window.plugins.toast.show('Wallet loaded', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 						document.getElementById("transactionDisplayList").innerHTML = '';
@@ -705,17 +703,17 @@
 						document.getElementById("device_signed_transaction").value = '';
 						$("#rawTransactionStatus").addClass('hidden');
 						$('#myTab a[href="#walletDetail"]').tab('show');
-						BleApi.displayStatus('Waiting for data');
-          				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
-                  		$("#renameWallet").attr('disabled',false);
-                  		$("#newWalletButton").attr('disabled',false);
-                  		$(".wallet_row").attr('disabled',false);
-                  		$('#list_wallets').attr('disabled',false);
-                      // 							$('#forceRefresh').attr('disabled',true);
-						$('#transactionDisplayListHeading').attr('hidden',true);
+			      BleApi.displayStatus('Waiting for data');
+    				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.scan_wallet);
+        		$("#renameWallet").attr('disabled',false);
+        		$("#newWalletButton").attr('disabled',false);
+        		$(".wallet_row").attr('disabled',false);
+        		$('#list_wallets').attr('disabled',false);
+            // 							$('#forceRefresh').attr('disabled',true);
+	          $('#transactionDisplayListHeading').attr('hidden',true);
 
-						currentCommand = '';
-						break;
+			      currentCommand = '';
+			    break;
 					case "signAndSend":
 						BleApi.app.sliceAndWrite64(tempTXglobal);
 						tempTXglobal = '';
@@ -723,19 +721,19 @@
 						break;
 					default:
 						BleApi.displayStatus('Success');
-						break;
-              	}
+					break;
+        }
 
-                  break;
+      break;
 
-              case "35": // general purpose error/cancel
-                  var Failure = Device.Failure.decodeHex(payload);
+      case "35": // general purpose error/cancel
+        var Failure = Device.Failure.decodeHex(payload);
         //                     console.log(Failure);
         //                     console.log('error #: ' + Failure.error_code + ' error: ' + Failure.error_message);
 				$('#myTab a[href="#bip32"]').tab('show');
-					window.plugins.toast.show('error: ' + hex2a(payload), 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+	      window.plugins.toast.show('error: ' + hex2a(payload), 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 
-              	switch (currentCommand) {
+      	switch (currentCommand) {
 					case "deleteWallet":
           // 							BleApi.displayStatus('Wallet deleted');
           // 							$('#myTab a[href="#bip32"]').tab('show');
@@ -747,7 +745,7 @@
           //
           // 							BleApi.displayStatus('Listing wallets');
 						currentCommand = '';
-						break;
+					break;
 					case "renameWallet":
           // 							BleApi.displayStatus('Wallet renamed');
           // 							$('#myTab a[href="#bip32"]').tab('show');
@@ -760,7 +758,7 @@
           //
           // 							BleApi.displayStatus('Listing wallets');
 						currentCommand = '';
-						break;
+					break;
 					case "newWallet":
           // 							window.plugins.toast.show('Refreshing your wallet list', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
           //
@@ -771,54 +769,54 @@
           // 							BleApi.displayStatus('Listing refreshed');
           //
 						currentCommand = '';
-						break;
+					break;
 					case "formatDevice":
           // 							window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
           // 							BleApi.displayStatus('Ready');
           // 							BleApi.app.sliceAndWrite64(BleApi.deviceCommands.list_wallets);
           // 							$('#myTab a[href="#bip32"]').tab('show');
 						currentCommand = '';
-						break;
+					break;
 					case "loadWallet":
-                  		$("#newWalletButton").attr('disabled',false);
-                  		$(".wallet_row").attr('disabled',false);
-                  		$('#list_wallets').attr('disabled',false);
+            $("#newWalletButton").attr('disabled',false);
+        		$(".wallet_row").attr('disabled',false);
+        		$('#list_wallets').attr('disabled',false);
 						document.getElementById("loaded_wallet_name").innerHTML = '';
 
 						currentCommand = '';
-						break;
+					break;
 					default:
           // 							BleApi.displayStatus('Error');
-						break;
-              	}
+					break;
+      	}
 
-                 	break;
+        break;
 
-              case "36": // device uuid return
-                  var DeviceUUID = Device.DeviceUUID.decodeHex(payload);
-                  console.log('device uuid: ' + DeviceUUID.device_uuid.toString("hex"));
-                  break;
+      case "36": // device uuid return
+        var DeviceUUID = Device.DeviceUUID.decodeHex(payload);
+        console.log('device uuid: ' + DeviceUUID.device_uuid.toString("hex"));
+        break;
 
-              case "37": // entropy return
-                  var Entropy = Device.Entropy.decodeHex(payload);
-                  console.log('ReturnedEntropy: ' + Entropy.entropy);
-                  break;
+      case "37": // entropy return
+        var Entropy = Device.Entropy.decodeHex(payload);
+        console.log('ReturnedEntropy: ' + Entropy.entropy);
+        break;
 
-              case "39": // signature return [original]
-                  var Signature = Device.Signature.decodeHex(payload);
-                  // 					Signature.signature_data
-                  break;
+      case "39": // signature return [original]
+        var Signature = Device.Signature.decodeHex(payload);
+        // 					Signature.signature_data
+        break;
 
-              case "50": // #define PACKET_TYPE_ACK_REQUEST			0x50
-				BleApi.app.sliceAndWrite64(BleApi.deviceCommands.button_ack);
-                  break;
+      case "50": // #define PACKET_TYPE_ACK_REQUEST			0x50
+        BleApi.app.sliceAndWrite64(BleApi.deviceCommands.button_ack);
+        break;
 
-              case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
-				BleApi.displayStatus('OTP');
-				respondToOTPrequest();
-                  break;
+      case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
+        BleApi.displayStatus('OTP');
+        respondToOTPrequest();
+        break;
 
-              case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
+      case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
 				var CurrentWalletXPUB = Device.CurrentWalletXPUB.decodeHex(payload);
 
 				document.getElementById("bip32_source_key").textContent = CurrentWalletXPUB.xpub;
@@ -830,23 +828,23 @@
       // 					$("#receiveButton").attr('disabled',false);
       // 					$("#signMessageButton").attr('disabled',false);
       // 					$("#transactionHistoryButton").attr('disabled',false);
-                  break;
+      break;
 
-              case "64": // signature return
-                  var SignatureComplete = Device.SignatureComplete.decodeHex(payload);
-                  // 					console.log("SignatureComplete: " + SignatureComplete.signature_complete_data);
-                  //                  console.log("number of signatures: " + SignatureComplete.signature_complete_data.length);
-                  var sigIndex;
-                  var unSignedTransaction = document.getElementById("output_transaction").value;
-                    // 					console.log("unSignedTransaction pre: " + unSignedTransaction);
+      case "64": // signature return
+        var SignatureComplete = Device.SignatureComplete.decodeHex(payload);
+        // 					console.log("SignatureComplete: " + SignatureComplete.signature_complete_data);
+        //                  console.log("number of signatures: " + SignatureComplete.signature_complete_data.length);
+        var sigIndex;
+        var unSignedTransaction = document.getElementById("output_transaction").value;
+          // 					console.log("unSignedTransaction pre: " + unSignedTransaction);
 
-                  for (sigIndex=0; sigIndex < SignatureComplete.signature_complete_data.length; sigIndex++){
+        for (sigIndex=0; sigIndex < SignatureComplete.signature_complete_data.length; sigIndex++){
 
-                  	var payloadSig = SignatureComplete.signature_complete_data[sigIndex].signature_data_complete.toString("hex");
-                  	var payloadSigSizeHex = payloadSig.substring(0, 2);
-                  	var payloadSigSizeDec = h2d(payloadSigSizeHex);
-                  	var payloadSigSizeChars = 2 + (payloadSigSizeDec * 2);
-                    // 						console.log("SignatureComplete:Data:signature_data_complete " + sigIndex + "  SIZE (HEX) " + payloadSigSizeHex + "  SIZE (DEC) " + payloadSigSizeDec);
+        	var payloadSig = SignatureComplete.signature_complete_data[sigIndex].signature_data_complete.toString("hex");
+        	var payloadSigSizeHex = payloadSig.substring(0, 2);
+        	var payloadSigSizeDec = h2d(payloadSigSizeHex);
+        	var payloadSigSizeChars = 2 + (payloadSigSizeDec * 2);
+          // 						console.log("SignatureComplete:Data:signature_data_complete " + sigIndex + "  SIZE (HEX) " + payloadSigSizeHex + "  SIZE (DEC) " + payloadSigSizeDec);
           // 						console.log("SignatureComplete:Data:signature_data_complete RAW " + sigIndex + " " + payloadSig);
 					payloadSig = payloadSig.substring(0, payloadSigSizeChars);
           // 						console.log("SignatureComplete:Data:signature_data_complete TRIM " + sigIndex + " " + payloadSig);
@@ -857,69 +855,68 @@
           // 						console.log("unSignedTransaction: " + unSignedTransaction);
 
 					unSignedTransaction = unSignedTransaction.replace(script, payloadSig);
-          // 						console.log("SignatureComplete:Data:signature_data_complete part SIGNED " + sigIndex + " " + unSignedTransaction);
-                  }
-                  // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
-                  //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
-                  BleApi.displayStatus('Signature received');
+// 						console.log("SignatureComplete:Data:signature_data_complete part SIGNED " + sigIndex + " " + unSignedTransaction);
+        }
+        // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
+        //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
+        BleApi.displayStatus('Signature received');
 
-                  if(currentCommand == 'signAndSend')
-                  {
-                      BleApi.displayStatus('Submitting...');
-                  	rawSubmitAuto(unSignedTransaction);
-                  }else
-                  {
+        if(currentCommand == 'signAndSend')
+        {
+            BleApi.displayStatus('Submitting...');
+        	rawSubmitAuto(unSignedTransaction);
+        } else  {
 					document.getElementById("rawTransaction").value = unSignedTransaction;
 					$("#signedtxlabel").show()
 					$("#rawSubmitBtn").attr('disabled',false);
-                  }
+        }
 
-                  break;
+      break;
 
-              case "71": // message signing return
-              	console.log("########## in case 71 ###########");
-					window.plugins.toast.show('Processing signature', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-                  var SignatureMessage = Device.SignatureMessage.decodeHex(payload);
+      case "71": // message signing return
+      	console.log("########## in case 71 ###########");
+	           window.plugins.toast.show('Processing signature', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
+          var SignatureMessage = Device.SignatureMessage.decodeHex(payload);
 
-                  var data_size = (SignatureMessage.signature_data_complete.toString("hex").length)/2;
-                  var data_size_hex = d2h(data_size);
+          var data_size = (SignatureMessage.signature_data_complete.toString("hex").length)/2;
+          var data_size_hex = d2h(data_size);
 
 				console.log("SigMsg signature_data length: " + data_size_hex);
 				console.log("SigMsg signature_data hex: " + SignatureMessage.signature_data_complete.toString("hex"));
 
-				var SigByteArrayHex = Crypto.util.hexToBytes(SignatureMessage.signature_data_complete.toString("hex"));
+  				var SigByteArrayHex = Crypto.util.hexToBytes(SignatureMessage.signature_data_complete.toString("hex"));
 
-				var compressed = true;
-				var addrtype = 0;
-				var address = document.getElementById("sgAddr").value;
-    			var message = document.getElementById("sgMsgHidden").value;
+  				var compressed = true;
+  				var addrtype = 0;
+  				var address = document.getElementById("sgAddr").value;
+      			var message = document.getElementById("sgMsgHidden").value;
 
-				var sig = sign_message_device_processing(message, address, SigByteArrayHex, compressed, addrtype);
+  				var sig = sign_message_device_processing(message, address, SigByteArrayHex, compressed, addrtype);
 
-				sgData = {"message":message, "address":address, "signature":sig};
-				var sgType = 'inputs_io';
+  				sgData = {"message":message, "address":address, "signature":sig};
+  				var sgType = 'inputs_io';
 
-				$('#sgSig').val(makeSignedMessage(sgType, sgData.message, sgData.address, sgData.signature));
-                  break;
+  				$('#sgSig').val(makeSignedMessage(sgType, sgData.message, sgData.address, sgData.signature));
+      break;
 
-              case "82": // bulk return
-              	console.log("########## in case 82 ###########");
-                  Bulk = Device.Bulk.decodeHex(payload);
+      case "82": // bulk return
+      	console.log("########## in case 82 ###########");
+          Bulk = Device.Bulk.decodeHex(payload);
 
-                  var data_size = (Bulk.bulk.toString("hex").length)/2;
-                  var data_size_hex = d2h(data_size);
+          var data_size = (Bulk.bulk.toString("hex").length)/2;
+          var data_size_hex = d2h(data_size);
 
-				BulkString = Bulk.bulk.toString("hex")
-        // 					console.log("Bulk.bulk raw: " + Bulk.bulk);
-				console.log("Bulk.bulk length: " + data_size_hex);
-        // 					console.log("Bulk.bulk hex: " + BulkString);
-                  break;
+  				BulkString = Bulk.bulk.toString("hex")
+          // 					console.log("Bulk.bulk raw: " + Bulk.bulk);
+  				console.log("Bulk.bulk length: " + data_size_hex);
+          // 					console.log("Bulk.bulk hex: " + BulkString);
+      break;
 
-              default:
-              	break;
-          } //switch
+      default:
+      break;
+    } //switch
 
-      } //function processResults
+  } //function processResults
 
     /**
      * Application object that holds data and functions used by the BleApi.app.

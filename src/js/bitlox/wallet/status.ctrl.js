@@ -51,16 +51,9 @@
             }
         });
 
-        api.$scope.$watch('knownDevicesList', function(knownDevices) {
+        api.$scope.$watch('knownDevices', function(knownDevices) {
+          console.log("I think Cordova might have down syndrome"+JSON.stringify(knownDevices))
           sc.bitlox.knownDevices = knownDevices;
-          if(knownDevices) {
-            try {
-              sc.bitlox.numDevices = Object.keys(knownDevices).length || 0
-            } catch(e) {
-              console.log("I think Cordova might have down syndrome")
-              console.log(e)
-            }
-          }
         })
 
         api.$scope.$watch('status', function(hidstatus) {
