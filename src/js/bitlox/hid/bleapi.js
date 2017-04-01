@@ -182,7 +182,7 @@ this.initProtoBuf = function(cb) {
   // var pathToProto = path_prefix+"www/proto/messages.proto";
   var path_prefix = platform === 'android' ? "file:///android_asset/" : "file:///"
 
-  var pathToProto = path_prefix+"www/proto/messages.proto";
+  var pathToProto = "proto/messages.proto";
   console.warn(pathToProto)
   console.warn(pathToProto)
   console.warn(pathToProto)
