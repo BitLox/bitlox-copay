@@ -178,7 +178,7 @@ this.initProtoBuf = function(cb) {
   var ProtoBuf = dcodeIO.ProtoBuf;
   var ByteBuffer = dcodeIO.ByteBuffer;
 
-  var path_prefix = platform === 'android' ? "file:///android_asset/" : "/"
+  var path_prefix = platform === 'android' ? "file:///android_asset/" : cordova.file.applicationDirectory
   ProtoBuf.loadProtoFile(path_prefix+"www/proto/messages.proto", function(err, builder) {
     if(err) {
       console.error("PROTO LOAD ERROR")
