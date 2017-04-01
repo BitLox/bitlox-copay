@@ -164,6 +164,11 @@ BleApi.getStatus = function() {
 this.stopScan = function() {
 	evothings.ble.stopScan();
 }
+var ProtoBuf = dcodeIO.ProtoBuf;
+var ByteBuffer = dcodeIO.ByteBuffer;
+var path_prefix = platform === 'android' ? "file:///android_asset/" : "/"
+var builder = ProtoBuf.loadProtoFile(path_prefix+"www/proto/messages.proto")
+var ProtoDevice = builder.build()
 
 this.initialize = function() {
   var bleapi = this
@@ -174,21 +179,7 @@ this.initialize = function() {
       bleReady = true;
     },false);
 }
-this.initProtoBuf = function(cb) {
-  var ProtoBuf = dcodeIO.ProtoBuf;
-  var ByteBuffer = dcodeIO.ByteBuffer;
 
-
-  ProtoBuf.loadProtoFile("file:///android_asset/www/proto/messages.proto", function(err, builder) {
-    if(err) {
-      console.error("PROTO LOAD ERROR")
-      console.error(err)
-      return cb(err)
-    }
-    var Device = builder.build();
-    return cb(null, Device)
-  });
-}
 
 this.constructTxString = function(pinAckMessage,command) {
   var tempBuffer = pinAckMessage.encode();
@@ -218,19 +209,11 @@ this.listWallets = function() {
   return this.write(deviceCommands.list_wallets);
 }
 this.ping = function() {
-  this.initProtoBuf(function(err, Device) {
-    if(err) {
-      console.error("error initializing protobuf")
-      console.error(err)
-      return false;
-    }
-    var pinAckMessage = new Device.Ping({
-      "greeting": "PING!"
-    });
-    var tempTXstring = BleApi.constructTxString(pinAckMessage,"0000")
-    BleApi.write(tempTXstring)
-
+  var pinAckMessage = new ProtoDevice.Ping({
+    "greeting": "PING!"
   });
+  var tempTXstring = BleApi.constructTxString(pinAckMessage,"0000")
+  BleApi.write(tempTXstring)
 }
 
 this.displayStatus = function(status)
@@ -623,7 +606,7 @@ this.finalPrepProcess = function(dataToProcess)
       // document.getElementById("payload_HEX").innerHTML = payload;
       // document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
       console.log('ready to process: ' + dataToProcess);
-      processResults(command, payloadSize2, payload);
+      this.processResults(command, payloadSize2, payload);
     }
 }
 
@@ -636,21 +619,14 @@ var walletsListForPicker =[];
 var walletNameListForPicker = [];
 
 
-function processResults(command, length, payload) {
-  var ProtoBuf = dcodeIO.ProtoBuf;
-  var ByteBuffer = dcodeIO.ByteBuffer;
-
-
-  var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-      Device = builder.build();
-
-      // 			console.log("RX: " + command);
+this.processResults = function(command, length, payload) {
+  // 			console.log("RX: " + command);
   command = command.substring(2, 4)
   //  			window.plugins.toast.show('to process: ' + command, 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
   console.log('to process: ' + command + ' ' + length + ' ' + payload);
   switch (command) {
     case "3A": // initialize
-    //                     var featuresMessage = Device.Features.decodeHex(payload);
+    //                     var featuresMessage = ProtoDevice.Features.decodeHex(payload);
     //                     console.log("vendor: " + featuresMessage.vendor);
     //                     console.log("config: " + featuresMessage.config);
     //                     console.log("device name: " + featuresMessage.device_name);
@@ -677,7 +653,7 @@ function processResults(command, length, payload) {
         break;
 
     case "32": // Wallet list
-      var walletMessage = Device.Wallets.decodeHex(payload);
+      var walletMessage = ProtoDevice.Wallets.decodeHex(payload);
 			walletsListForPicker = [];
 			walletNameListForPicker = [];
 
@@ -725,7 +701,7 @@ function processResults(command, length, payload) {
     break;
 
     case "33": // Ping response
-      var PingResponse = Device.PingResponse.decodeHex(payload);
+      var PingResponse = ProtoDevice.PingResponse.decodeHex(payload);
       console.log(PingResponse);
       console.log('echo: ' + PingResponse.echoed_greeting + ' session ID: ' + PingResponse.echoed_session_id);
     break;
@@ -810,7 +786,7 @@ function processResults(command, length, payload) {
     break;
 
     case "35": // general purpose error/cancel
-      var Failure = Device.Failure.decodeHex(payload);
+      var Failure = ProtoDevice.Failure.decodeHex(payload);
       //                     console.log(Failure);
       //                     console.log('error #: ' + Failure.error_code + ' error: ' + Failure.error_message);
 			$('#myTab a[href="#bip32"]').tab('show');
@@ -876,17 +852,17 @@ function processResults(command, length, payload) {
       break;
 
     case "36": // device uuid return
-      var DeviceUUID = Device.DeviceUUID.decodeHex(payload);
+      var DeviceUUID = ProtoDevice.DeviceUUID.decodeHex(payload);
       console.log('device uuid: ' + DeviceUUID.device_uuid.toString("hex"));
       break;
 
     case "37": // entropy return
-      var Entropy = Device.Entropy.decodeHex(payload);
+      var Entropy = ProtoDevice.Entropy.decodeHex(payload);
       console.log('ReturnedEntropy: ' + Entropy.entropy);
       break;
 
     case "39": // signature return [original]
-      var Signature = Device.Signature.decodeHex(payload);
+      var Signature = ProtoDevice.Signature.decodeHex(payload);
       // 					Signature.signature_data
       break;
 
@@ -900,7 +876,7 @@ function processResults(command, length, payload) {
       break;
 
     case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
-			var CurrentWalletXPUB = Device.CurrentWalletXPUB.decodeHex(payload);
+			var CurrentWalletXPUB = ProtoDevice.CurrentWalletXPUB.decodeHex(payload);
 
 			document.getElementById("bip32_source_key").textContent = CurrentWalletXPUB.xpub;
 
@@ -914,7 +890,7 @@ function processResults(command, length, payload) {
     break;
 
     case "64": // signature return
-      var SignatureComplete = Device.SignatureComplete.decodeHex(payload);
+      var SignatureComplete = ProtoDevice.SignatureComplete.decodeHex(payload);
       // 					console.log("SignatureComplete: " + SignatureComplete.signature_complete_data);
       //                  console.log("number of signatures: " + SignatureComplete.signature_complete_data.length);
       var sigIndex;
@@ -959,7 +935,7 @@ function processResults(command, length, payload) {
     case "71": // message signing return
     	console.log("########## in case 71 ###########");
            window.plugins.toast.show('Processing signature', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-        var SignatureMessage = Device.SignatureMessage.decodeHex(payload);
+        var SignatureMessage = ProtoDevice.SignatureMessage.decodeHex(payload);
 
         var data_size = (SignatureMessage.signature_data_complete.toString("hex").length)/2;
         var data_size_hex = d2h(data_size);
@@ -984,7 +960,7 @@ function processResults(command, length, payload) {
 
     case "82": // bulk return
     	console.log("########## in case 82 ###########");
-        Bulk = Device.Bulk.decodeHex(payload);
+        Bulk = ProtoDevice.Bulk.decodeHex(payload);
 
         var data_size = (Bulk.bulk.toString("hex").length)/2;
         var data_size_hex = d2h(data_size);
@@ -998,7 +974,6 @@ function processResults(command, length, payload) {
     default:
     break;
   } //switch
-
 } //function processResults
 
   /**
