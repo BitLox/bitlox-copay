@@ -184,7 +184,6 @@ this.initProtoBuf = function(cb) {
       return cb(err)
     }
     var Device = builder.build();
-    console.log(JSON.stringify(builder))
     return cb(null, Device)
   });
 }
