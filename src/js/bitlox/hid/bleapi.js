@@ -325,7 +325,7 @@ this.startReading = function()
       {
         buf[i] = 0;
       };
-      bleapi.app.sendToProcess(sD);
+      bleapi.sendToProcess(sD);
       sD = '';
       if(platform == "android")
       {
