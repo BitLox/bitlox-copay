@@ -813,7 +813,7 @@ this.write = function(data, timer) {
   }
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
-  if(!timer) timer = 10000;
+  if(!timer) timer = 30000;
   timeout = setTimeout(function() {
     console.warn("TIMEOUT of Write Command")
     evothings.ble.close(BleApi.deviceHandle)
@@ -1006,6 +1006,8 @@ this.processResults = function(command, length, payload) {
 					// $("#rawTransactionStatus").addClass('hidden');
 					// $('#myTab a[href="#walletDetail"]').tab('show');
 		      BleApi.displayStatus('Waiting for data');
+          status = BleApi.STATUS_IDLE;
+          $rootScope.$applyAsync();
   				BleApi.write(deviceCommands.scan_wallet);
       		// $("#renameWallet").attr('disabled',false);
       		// $("#newWalletButton").attr('disabled',false);
