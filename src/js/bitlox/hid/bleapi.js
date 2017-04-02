@@ -356,7 +356,7 @@ this.listWallets = function() {
 
 this.loadWallet = function(num) {
   var cmd = this.getWalletCommand('load', num);
-  return this.write(cmd)
+  return this.write(cmd, 300000)
 }
 
 this.ping = function(args) {
@@ -677,7 +677,7 @@ this.connect = function(address)	{
 		});
 }
 // old sliceAndWrite64, 'data' is a command constant
-this.write = function(data) {
+this.write = function(data, timer) {
   currentPromise = $q.defer();
   console.log("ready to write status: " + status + ": command: " +data)
   if(status !== BleApi.STATUS_CONNECTED && status !== BleApi.STATUS_IDLE) {
@@ -771,7 +771,7 @@ this.write = function(data) {
   }
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
-  var timer = 30000;
+  if(!timer) timer = 10000;
   timeout = setTimeout(function() {
     console.warn("TIMEOUT of Write Command")
     currentCommand = null
