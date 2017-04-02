@@ -1116,9 +1116,9 @@ this.processResults = function(command, length, payload) {
 
     case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
 			var CurrentWalletXPUB = protoDevice.CurrentWalletXPUB.decodeHex(payload);
+      var source_key = CurrentWalletXPUB.xpub;
       useNewKey(source_key);
       BleApi.displayStatus('xpub received');
-			document.getElementById("bip32_source_key").textContent = CurrentWalletXPUB.xpub;
       this.sendData(CurrentWalletXPUB)
     break;
 
