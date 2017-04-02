@@ -983,11 +983,7 @@ this.processResults = function(command, length, payload) {
 
     case "35": // general purpose error/cancel
       var Failure = protoDevice.Failure.decodeHex(payload);
-      //                     console.log(Failure);
-      //                     console.log('error #: ' + Failure.error_code + ' error: ' + Failure.error_message);
-			$('#myTab a[href="#bip32"]').tab('show');
-      window.plugins.toast.show('error: ' + hex2a(payload), 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-
+      currentPromise.reject(Failure)
     	switch (currentCommand) {
 				case "deleteWallet":
         // 							BleApi.displayStatus('Wallet deleted');
@@ -1033,10 +1029,6 @@ this.processResults = function(command, length, payload) {
 					currentCommand = '';
 				break;
 				case "loadWallet":
-          $("#newWalletButton").attr('disabled',false);
-      		$(".wallet_row").attr('disabled',false);
-      		$('#list_wallets').attr('disabled',false);
-					document.getElementById("loaded_wallet_name").innerHTML = '';
 
 					currentCommand = '';
 				break;
@@ -1049,7 +1041,8 @@ this.processResults = function(command, length, payload) {
 
     case "36": // device uuid return
       var DeviceUUID = protoDevice.DeviceUUID.decodeHex(payload);
-      console.log('device uuid: ' + DeviceUUID.device_uuid.toString("hex"));
+      //DeviceUUID.device_uuid.toString("hex")
+      this.sendData(DeviceUUID)
       break;
 
     case "37": // entropy return
@@ -1060,10 +1053,11 @@ this.processResults = function(command, length, payload) {
     case "39": // signature return [original]
       var Signature = protoDevice.Signature.decodeHex(payload);
       // 					Signature.signature_data
+      this.sendData(Signature)
       break;
 
     case "50": // #define PACKET_TYPE_ACK_REQUEST			0x50
-      BleApi.app.sliceAndWrite64(deviceCommands.button_ack);
+      this.write(deviceCommands.button_ack);
       break;
 
     case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
@@ -1073,16 +1067,10 @@ this.processResults = function(command, length, payload) {
 
     case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
 			var CurrentWalletXPUB = protoDevice.CurrentWalletXPUB.decodeHex(payload);
-
+      useNewKey(source_key);
+      BleApi.displayStatus('xpub received');
 			document.getElementById("bip32_source_key").textContent = CurrentWalletXPUB.xpub;
-
-			var source_key = $("#bip32_source_key").val();
-			useNewKey(source_key);
-			BleApi.displayStatus('xpub received');
-    // 					$("#sendButton").attr('disabled',false);
-    // 					$("#receiveButton").attr('disabled',false);
-    // 					$("#signMessageButton").attr('disabled',false);
-    // 					$("#transactionHistoryButton").attr('disabled',false);
+      this.sendData(CurrentWalletXPUB)
     break;
 
     case "64": // signature return
@@ -1115,16 +1103,17 @@ this.processResults = function(command, length, payload) {
       // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
       //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
       BleApi.displayStatus('Signature received');
-
-      if(currentCommand == 'signAndSend')
-      {
-          BleApi.displayStatus('Submitting...');
-      	rawSubmitAuto(unSignedTransaction);
-      } else  {
-				document.getElementById("rawTransaction").value = unSignedTransaction;
-				$("#signedtxlabel").show()
-				$("#rawSubmitBtn").attr('disabled',false);
-      }
+      this.sendData({rawTransaction:unSignedTransaction})
+      // if(currentCommand == 'signAndSend')
+      // {
+      //     BleApi.displayStatus('Submitting...');
+      // 	rawSubmitAuto(unSignedTransaction);
+      // } else  {
+			// 	document.getElementById("rawTransaction").value = unSignedTransaction;
+			// 	$("#signedtxlabel").show()
+			// 	$("#rawSubmitBtn").attr('disabled',false);
+      //
+      // }
 
     break;
 
