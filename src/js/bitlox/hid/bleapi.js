@@ -42,6 +42,7 @@ var bleReady = null,
   platform = null,
   protoDevice = null,
   currentPromise = null,
+  timeout = setTimeout(function() {},0),
   errCommandInProgress = $q.reject(new Error("command already in progress"))
 
 var incomingData = '';
@@ -445,9 +446,9 @@ this.displayStatus = function(status) {
 this.getServices = function() {
   var bleapi = this
 
-	bleapi.displayStatus('Reading services...');
+	BleApi.displayStatus('Reading services...');
 
-	evothings.ble.readAllServiceData(bleapi.deviceHandle, function(services)
+	evothings.ble.readAllServiceData(BleApi.deviceHandle, function(services)
 	{
 		// Find handles for characteristics and descriptor needed.
 		for (var si in services)
@@ -459,20 +460,20 @@ this.getServices = function() {
 
 				if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb')
 				{
-          bleapi.characteristicRead = evothings.ble.getCharacteristic(service, characteristic.uuid)
-					// bleapi.characteristicRead = characteristic.handle;
+          BleApi.characteristicRead = evothings.ble.getCharacteristic(service, characteristic.uuid)
+					// BleApi.characteristicRead = characteristic.handle;
 				}
 				else if (characteristic.uuid == '0000ffe9-0000-1000-8000-00805f9b34fb')
 				{
-          bleapi.characteristicWrite = evothings.ble.getCharacteristic(service, characteristic.uuid)
+          BleApi.characteristicWrite = evothings.ble.getCharacteristic(service, characteristic.uuid)
 
-					// bleapi.characteristicWrite = characteristic.handle;
+					// BleApi.characteristicWrite = characteristic.handle;
 				}
 				else if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb')
 				{
-          bleapi.characteristicName = evothings.ble.getCharacteristic(service, characteristic.uuid)
+          BleApi.characteristicName = evothings.ble.getCharacteristic(service, characteristic.uuid)
 
-					// bleapi.characteristicName = characteristic.handle;
+					// BleApi.characteristicName = characteristic.handle;
 				}
 
 				for (var di in characteristic.descriptors)
@@ -482,30 +483,30 @@ this.getServices = function() {
 					if (characteristic.uuid == '0000ffe4-0000-1000-8000-00805f9b34fb' &&
 						descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
 					{
-						bleapi.descriptorNotification = descriptor.handle;
+						BleApi.descriptorNotification = descriptor.handle;
 					}
 					if (characteristic.uuid == '0000ff91-0000-1000-8000-00805f9b34fb' &&
 						descriptor.uuid == '00002901-0000-1000-8000-00805f9b34fb')
 					{
-						bleapi.descriptorName = descriptor.handle;
+						BleApi.descriptorName = descriptor.handle;
 					}
 				}
 			}
 		}
 
-		if (bleapi.characteristicRead && bleapi.characteristicWrite && bleapi.descriptorNotification && bleapi.characteristicName && bleapi.descriptorName)
+		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
-      bleapi.displayStatus('RX/TX services found!');
-			bleapi.startReading();
+      BleApi.displayStatus('RX/TX services found!');
+			BleApi.startReading();
 		}
 		else
 		{
-			bleapi.displayStatus('ERROR: RX/TX services not found!');
+			BleApi.displayStatus('ERROR: RX/TX services not found!');
 		}
 	},
 	function(errorCode)
 	{
-		bleapi.displayStatus('readAllServiceData error: ' + errorCode);
+		BleApi.displayStatus('readAllServiceData error: ' + errorCode);
 	});
 }
 
@@ -517,25 +518,25 @@ this.getServices = function() {
 */
 this.startReading = function() {
   var bleapi = this
-	bleapi.displayStatus('Enabling notifications...');
+	BleApi.displayStatus('Enabling notifications...');
 
 	var sD = '';
 	// console.log('data at beginning: ' + sD);
 
 	// Turn notifications on.
-	bleapi.bleWrite(
+	BleApi.bleWrite(
 		'writeDescriptor',
-		bleapi.deviceHandle,
-		bleapi.descriptorNotification,
+		BleApi.deviceHandle,
+		BleApi.descriptorNotification,
 		new Uint8Array([1,0]));
 
 
   // Start reading notifications.
   evothings.ble.enableNotification(
-    bleapi.deviceHandle,
-    bleapi.characteristicRead,
+    BleApi.deviceHandle,
+    BleApi.characteristicRead,
     function(data) {
-      bleapi.displayStatus('Active');
+      BleApi.displayStatus('Active');
       var buf = new Uint8Array(data);
       for (var i = 0 ; i < buf.length; i++)
       {
@@ -547,7 +548,7 @@ this.startReading = function() {
       {
         buf[i] = 0;
       };
-      bleapi.sendToProcess(sD);
+      BleApi.sendToProcess(sD);
       sD = '';
       if(platform == "android")
       {
@@ -556,13 +557,14 @@ this.startReading = function() {
 
     },
     function(errorCode) {
-      bleapi.displayStatus('enableNotification error: ' + errorCode);
-      status = bleapi.STATUS_DISCONNECTED
+      BleApi.displayStatus('enableNotification error: ' + errorCode);
+      status = BleApi.STATUS_DISCONNECTED
+      evothings.ble.close(BleApi.deviceHandle)
       $rootScope.$applyAsync();
     });
-  bleapi.displayStatus('Ready');
+  BleApi.displayStatus('Ready');
 
-  status = bleapi.STATUS_CONNECTED
+  status = BleApi.STATUS_CONNECTED
   $rootScope.$applyAsync()
 }
 
@@ -601,14 +603,14 @@ this.startScanNew = function() {
 			// We filter out these values here.
 			if (device.rssi <= 0)
 			{
-				bleapi.deviceFound(device, null);
+				BleApi.deviceFound(device, null);
 			}
 		},
 		function(errorCode)
 		{
       console.error("BITLOX BLE SCAN ERROR", errorCode)
 			// Report error.
-			bleapi.deviceFound(null, errorCode);
+			BleApi.deviceFound(null, errorCode);
 		}
 	);
 }
@@ -639,7 +641,7 @@ this.connect = function(address)	{
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
   }
-  status = bleapi.STATUS_CONNECTING
+  status = BleApi.STATUS_CONNECTING
   $rootScope.$applyAsync()
 	this.displayStatus('Connecting...');
 	evothings.ble.connect(
@@ -648,30 +650,30 @@ this.connect = function(address)	{
 		{
 			if (device.state == 2) // Connected
 			{
-				bleapi.displayStatus('Connected');
+				BleApi.displayStatus('Connected');
 				if(platform == "android")
 				{
 					pausecomp(1000);
 				}
-				bleapi.deviceHandle = device.deviceHandle;
-				bleapi.getServices();
+				BleApi.deviceHandle = device.deviceHandle;
+				BleApi.getServices();
 			}
 			else
 			{
-        status = bleapi.STATUS_DISCONNECTED
+        status = BleApi.STATUS_DISCONNECTED
         $rootScope.$applyAsync()
-				bleapi.displayStatus('Disconnected');
+				BleApi.displayStatus('Disconnected');
 				pausecomp(50);
-				bleapi.connect(address);
+				BleApi.connect(address);
 			}
 		},
 		function(errorCode)
 		{
-      status = bleapi.STATUS_DISCONNECTED
+      status = BleApi.STATUS_DISCONNECTED
       $rootScope.$applyAsync()
-			bleapi.displayStatus('connect: ' + errorCode);
+			BleApi.displayStatus('connect: ' + errorCode);
       delete knownDevices[address]
-      bleapi.startScanNew();
+      BleApi.startScanNew();
 		});
 }
 // old sliceAndWrite64, 'data' is a command constant
@@ -770,10 +772,11 @@ this.write = function(data) {
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
   var timer = 30000;
-  timeout = $timeout(function() {
+  timeout = setTimeout(function() {
     console.warn("TIMEOUT of Write Command")
     currentCommand = null
-    status = BleApi.STATUS_IDLE
+    evothings.ble.close(BleApi.deviceHandle)
+    status = BleApi.STATUS_DISCONNECTED
     $rootScope.$applyAsync()
     currentPromise.reject(new Error('Command Write Timeout'))
   },timer)

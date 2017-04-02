@@ -97,19 +97,12 @@
             wallet.open()
                 .then(function() {
                     vm.openWallet = wallet;
-                }, Toast.errorHandler, function(status) {
-                    // console.debug("open notify", status);
-                    // dave says, I think this is not needed any more
-                    // if (status === Wallet.NOTIFY_XPUB_LOADED) {
-                    //     vm.loadingXpub = false;
-                    // }
-                })
-                .finally(function() {
                     console.debug("done loading wallet", wallet.number);
                     vm.openingWallet = null; // changed from -99 because I think it's fucking things up
-                    console.log("WALLET LOADED", wallet.xpub)
+                    console.log("WALLET LOADED")
+                    console.log(wallet.xpub)
                     _importExtendedPublicKey(wallet)
-                });
+                }, Toast.errorHandler);
         };
 
         vm.refreshBalance = function() {
