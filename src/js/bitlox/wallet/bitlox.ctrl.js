@@ -30,6 +30,27 @@
       status: null,
       alertClass: "warning"
     };
+
+
+
+    $scope.getEntropy = function(data) {
+      api.getEntropy(1024).then(function(data) {
+
+        console.warn("ENTROPY SUCCESS "+data.payload.entropy)
+      }).catch(function(e) {
+        console.warn("ENTROPY FAILURE")
+        console.warn(e)
+      });
+    }
+    $scope.ping = function(data) {
+      api.ping({greeting:"wbalbadubs"}).then(function(data) {
+
+        console.warn("PING SUCCESS "+data.payload.echoed_greeting + " " + data.payload.echoed_session_id)
+      }).catch(function(e) {
+        console.warn("PING FAILURE")
+        console.warn(e)
+      });
+    }
     $scope.refreshBitlox = function($event) {
       if($event) $event.stopPropagation();
 
@@ -65,6 +86,13 @@
           $scope.bitlox.connectAttempted = true;
           $scope.bitlox.connected = true;
           $scope.bitlox.statusString = "Bitlox connected";
+          $scope.bitlox.alertClass = "success";
+          $scope.bitlox.glyph = "glyphicon-ok";
+          break;
+      case api.STATUS_IDLE:
+          $scope.bitlox.connectAttempted = true;
+          $scope.bitlox.connected = true;
+          $scope.bitlox.statusString = "Bitlox idle";
           $scope.bitlox.alertClass = "success";
           $scope.bitlox.glyph = "glyphicon-ok";
           break;

@@ -48,11 +48,18 @@
             <span class="add-type" translate>Create/Restore Wallet</span>
             <i class="icon bp-arrow-right"></i>
           </a>
-          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="api.ping()">
+          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="ping()">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg"/>
             </i>
             <span class="add-type" translate>PING</span>
+            <i class="icon bp-arrow-right"></i>
+          </a>
+          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="getEntropy()">
+            <i class="icon big-icon-svg">
+              <img src="img/icon-wallet.svg" class="bg"/>
+            </i>
+            <span class="add-type" translate>ENTROPY 1024</span>
             <i class="icon bp-arrow-right"></i>
           </a>
           <a ng-repeat="wallet in vm.wallets"

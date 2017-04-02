@@ -76,6 +76,9 @@
                     wallets.push(new Wallet(data));
                 });
                 return wallets;
+            }, function(err) {
+              console.error('listWallets call failed')
+              console.error(err)
             });
         };
 

@@ -15,10 +15,14 @@
         else if(platformInfo.isMobile) {
           api = bleapi;
         }
+        $scope.api = api;
+
+
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
 
           var opts = {};
+          console.log(JSON.stringify(wallet))
           opts.externalSource = 'bitlox'
           opts.extendedPublicKey = wallet.xpub
           opts.derivationPath = derivationPathHelper.default
@@ -64,6 +68,13 @@
           chrome.hid.onDeviceAdded.addListener(function() {
               vm.readWallets();
           });
+        }
+        else if(platformInfo.isMobile) {
+          $scope.$watch('api.getStatus()', function(newVal) {
+            if(newVal === api.STATUS_CONNECTED) {
+                $timeout(vm.readWallets.bind(vm), 1000);
+            }
+          })
         }
         vm.readWallets = function() {
             vm.readingWallets = true;
