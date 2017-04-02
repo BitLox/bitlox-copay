@@ -170,6 +170,44 @@ BleApi.getCurrentResponseData = function() {
   return status;
 }
 
+
+/**
+*	Initialize device
+*	parameters: none
+*	sends a ~random number as a session id. This random number is echoed in any
+*	subsequent ping requests as a method of ensuring the device has not been reset in the middle of
+*	a session. Unloads all wallets & clears memory.
+*/
+this.initialize_protobuf_encode = function() {
+	var randomnumber= d2h(Math.floor(Math.random()*1000000001));
+  console.log("randomnumber: " + randomnumber);
+
+	var bb = new ByteBuffer();
+  var parseLength = randomnumber.length
+  // 	console.log("utx length = " + parseLength);
+  var i;
+  for (i = 0; i < parseLength; i += 2) {
+    var value = randomnumber.substring(i, i + 2);
+    // 	console.log("value = " + value);
+    var prefix = "0x";
+    var together = prefix.concat(value);
+    // 	console.log("together = " + together);
+    var result = parseInt(together);
+    // 	console.log("result = " + result);
+
+    bb.writeUint8(result);
+  }
+  bb.flip();
+
+  var msg = new protoDevice.Initialize({
+      "session_id": bb,
+  });
+  var tempTXstring = BleApi.constructTxString(msg,"0017")
+
+  this.write(tempTXstring);
+}
+
+
 this.getWalletCommand = function(type, walletNumber) {
     var cmd = deviceCommands[type + 'WalletPrefix'];
     var numHex = parseInt(walletNumber, 10).toString(16);
@@ -772,10 +810,8 @@ this.write = function(data, timer) {
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
   if(!timer) timer = 10000;
-  clearTimeout(timeout)
   timeout = setTimeout(function() {
     console.warn("TIMEOUT of Write Command")
-    currentCommand = null
     evothings.ble.close(BleApi.deviceHandle)
     status = BleApi.STATUS_DISCONNECTED
     $rootScope.$applyAsync()
@@ -858,6 +894,12 @@ this.sendData = function(data) {
   // console.log(JSON.stringify(data))
   clearTimeout(timeout)
   currentPromise.resolve({payload:data});
+}
+this.sendError = function(data) {
+  currentCommand = null;
+  status = BleApi.STATUS_IDLE;
+  $rootScope.$applyAsync()
+  currentPromise.reject(new Error(data));
 }
 this.processResults = function(command, length, payload) {
 
@@ -984,7 +1026,7 @@ this.processResults = function(command, length, payload) {
 
     case "35": // general purpose error/cancel
       var Failure = protoDevice.Failure.decodeHex(payload);
-      currentPromise.reject(Failure)
+      this.sendError(Failure)
     	switch (currentCommand) {
 				case "deleteWallet":
         // 							BleApi.displayStatus('Wallet deleted');
@@ -1831,65 +1873,6 @@ this.processResults = function(command, length, payload) {
         timeout = setTimeout(txRebuild, TIMEOUT);
     }
 
-
-/**
-*	Initialize device
-*	parameters: none
-*	sends a ~random number as a session id. This random number is echoed in any
-*	subsequent ping requests as a method of ensuring the device has not been reset in the middle of
-*	a session. Unloads all wallets & clears memory.
-*/
-    function initialize_protobuf_encode() {
-        var ProtoBuf = dcodeIO.ProtoBuf;
-        var ByteBuffer = dcodeIO.ByteBuffer;
-        var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-            Device = builder.build();
-
-		var randomnumber= d2h(Math.floor(Math.random()*1000000001));
-        console.log("randomnumber: " + randomnumber);
-
-		var bb = new ByteBuffer();
-        var parseLength = randomnumber.length
-// 	console.log("utx length = " + parseLength);
-        var i;
-        for (i = 0; i < parseLength; i += 2) {
-            var value = randomnumber.substring(i, i + 2);
-// 	console.log("value = " + value);
-            var prefix = "0x";
-            var together = prefix.concat(value);
-// 	console.log("together = " + together);
-            var result = parseInt(together);
-// 	console.log("result = " + result);
-
-            bb.writeUint8(result);
-        }
-        bb.flip();
-
-        var initializeContents = new protoDevice.Initialize({
-            "session_id": bb,
-        });
-
-        tempBuffer = initializeContents.encode();
-        var tempTXstring = tempBuffer.toString('hex');
-//         document.getElementById("temp_results").innerHTML = tempTXstring;
-        txSize = d2h((tempTXstring.length) / 2).toString('hex');
-        var j;
-        var txLengthOriginal = txSize.length;
-        for (j = 0; j < (8 - txLengthOriginal); j++) {
-            var prefix = "0";
-            txSize = prefix.concat(txSize);
-        }
-        // 	console.log("txSizePadded = " + txSize);
-        tempTXstring = txSize.concat(tempTXstring);
-
-        var command = "0017";
-        tempTXstring = command.concat(tempTXstring);
-
-        var magic = "2323"
-        tempTXstring = magic.concat(tempTXstring);
-        console.log("init: " + tempTXstring);
-		BleApi.app.sliceAndWrite64(tempTXstring);
-    }
 
 
 
