@@ -389,15 +389,18 @@ this.genTransaction = function() {
 }
 
 this.listWallets = function() {
+  currentCommand = 'listWallets'
   return this.write(deviceCommands.list_wallets);
 }
 
 this.loadWallet = function(num) {
+  currentCommand = 'loadWallet'
   var cmd = this.getWalletCommand('load', num);
   return this.write(cmd, 300000)
 }
 
 this.ping = function(args) {
+  currentCommand = 'ping'
   var msg = new protoDevice.Ping(args);
   var tempTXstring = BleApi.constructTxString(msg,"0000")
   return this.write(tempTXstring)
@@ -410,6 +413,7 @@ this.ping = function(args) {
 *	parameters: entropy_amount, bytes of entropy to return
 */
 this.getEntropy = function(entropy_amount) {
+  currentCommand = 'getEntropy'
   var entropyToGet = Number(entropy_amount);
   var msg = new protoDevice.GetEntropy({
 	     "number_of_bytes": entropyToGet
