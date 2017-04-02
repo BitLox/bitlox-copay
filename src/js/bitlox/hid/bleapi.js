@@ -769,7 +769,7 @@ this.write = function(data) {
   }
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
-  timer = 30000;
+  var timer = 30000;
   timeout = $timeout(function() {
     console.warn("TIMEOUT of Write Command")
     currentCommand = null
