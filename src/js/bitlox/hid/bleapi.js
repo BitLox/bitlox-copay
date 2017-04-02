@@ -1116,8 +1116,6 @@ this.processResults = function(command, length, payload) {
 
     case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
 			var CurrentWalletXPUB = protoDevice.CurrentWalletXPUB.decodeHex(payload);
-      var source_key = CurrentWalletXPUB.xpub;
-      useNewKey(source_key);
       BleApi.displayStatus('xpub received');
       this.sendData(CurrentWalletXPUB)
     break;
@@ -3125,10 +3123,10 @@ console.log("address_handle_index " + address_handle_index);
             "change": null
         };
         usechange = 0;
-
-        $("#receive_table").find("tr").remove();
-        $("#change_table").find("tr").remove();
-        $("#balance_display").html('<span class="glyphicon glyphicon-refresh spinning"></span>');
+        //
+        // $("#receive_table").find("tr").remove();
+        // $("#change_table").find("tr").remove();
+        // $("#balance_display").html('<span class="glyphicon glyphicon-refresh spinning"></span>');
     }
 
     var ops = Bitcoin.Opcode.map;
@@ -3477,7 +3475,7 @@ console.log("address_handle_index " + address_handle_index);
                 }
 //                 var row = '<tr id="' + childaddr + '"><td class="iterator">' + index + '</td><td class="address-field">' + '<a href="http://bitlox.io/address/' + childaddr + '" target="_system">' + childFront +'<br>'+ childBack + '</a>' + qrcode + qrcode2 + '</td><td class="balance">?</td></tr>';
                 var row = '<tr id="' + childaddr + '"><td class="iterator">' + index + '</td><td class="address-field">' + ' <span class="selectable">' + childFront +'<br>'+ childBack + '</span>' + qrcode + qrcode2 + '</td><td class="balance">?</td>[<td class="pending">?</td>]</tr>';
-                $('#' + chain + '_table').append(row);
+                // $('#' + chain + '_table').append(row);
                 addresses[chain][childaddr] = childkey;
 
                 if (navigator.onLine) {
@@ -3541,14 +3539,14 @@ console.log("address_handle_index " + address_handle_index);
         }
         Bitcoin.setNetwork(network);
     }
-    $("#bip32_key_info_title").text(keylabel);
-    $("#network_label").text(networklabel);
+    // $("#bip32_key_info_title").text(keylabel);
+    // $("#network_label").text(networklabel);
 
     console.log("key depth: " + key.depth);
     //         window.plugins.toast.show("key depth: " + key.depth, 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 
     if (key.depth != 1) {
-        alert("Non-standard key depth: should be 1, and it is " + key.depth + ", are you sure you want to use that?");
+        console.error("Non-standard key depth: should be 1, and it is " + key.depth + ", are you sure you want to use that?");
     }
 
 		addressListForMessages.length = 0;
