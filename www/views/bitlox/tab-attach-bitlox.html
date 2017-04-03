@@ -41,13 +41,17 @@
 
         <ion-list ng-show="!vm.readingWallets">
 
-          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ui-sref="tabs.add.create-bitlox-wallet({availableWallets:vm.availableWalletNumbers})">
+          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="createToggle = !createToggle">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg"/>
             </i>
             <span class="add-type" translate>Create/Restore Wallet</span>
             <i class="icon bp-arrow-right"></i>
           </a>
+          <div class="item" ng-show="createToggle">
+            <wallet-create available-numbers="vm.availableWalletNumbers"
+                           on-finish="vm.onCreateFinished()"></wallet-create>
+          </div>
           <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="ping()">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg"/>

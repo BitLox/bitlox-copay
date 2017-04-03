@@ -218,13 +218,11 @@ this.newWallet = function(walletNumber, options) {
   currentCommand = "newWallet"
   var protoData = {};
   if (options.isSecure) {
-      var pass = new ByteBuffer();
-      pass.writeUint8(0x74);
-      pass.flip();
-      protoData.password = pass;
+      protoData.password = true;
   } else {
       protoData.password = null;
   }
+  protoData.wallet_number = 49 // no idea why or if this is needed, copied from mobile code
   protoData.is_hidden = options.isHidden ? true : false;
   // get the name and put it in a byte buffer
   var name =  "Wallet " + walletNumber;
@@ -991,6 +989,7 @@ this.sendError = function(data,type) {
   currentCommand = null;
   status = BleApi.STATUS_IDLE;
   $rootScope.$applyAsync()
+  clearTimeout(timeout)
   currentPromise.resolve({type: type, data: data});
 }
 this.processResults = function(command, length, payload) {

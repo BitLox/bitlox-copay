@@ -21,14 +21,11 @@
                   console.log("CREATING WALLET NOW")
                     scope.creatingWallet = true;
                     Wallet.create(scope.newWallet.number, scope.newWallet).then(function() {
+
                     }, Toast.errorHandler).finally(function(res) {
-                        if(res.type === 'error') {
-                          console.warn("wallet creation error")
-                          console.warn(e)
-                        }
                         reset();
                         scope.creatingWallet = false;
-                        return scope.onFinish();
+                        return scope.onFinish(res);
                     });
                 };
 
