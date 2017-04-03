@@ -312,7 +312,7 @@ this.newWallet = function(walletNumber, options) {
   // if isRestore === true in the option, use the restor command
   // instead (everything else is the same)
   var cmdPrefix = (options.isRestore === true) ?
-      this.commands.restoreWalletPrefix : this.commands.newWalletPrefix;
+      deviceCommands.restoreWalletPrefix : deviceCommands.newWalletPrefix;
   // now make a full command using the proto buffer
   var cmd = this.makeCommand(cmdPrefix, newWalletMessage);
   return this.write(cmd,300000);
