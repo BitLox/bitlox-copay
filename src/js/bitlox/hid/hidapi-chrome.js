@@ -17,7 +17,7 @@
                     Toast, hexUtil, txUtil, messageUtil, abconv,
                     VENDOR_ID, PRODUCT_ID, RECEIVE_CHAIN, CHANGE_CHAIN,
                     hidCommands, PROTO_STRING, platformInfo) {
-        if(!platformInfo.isChrome) {
+        if(!platformInfo.isChromeApp) {
           return false;
         }
         this.VENDOR_ID = VENDOR_ID;
@@ -166,7 +166,7 @@
         var hidapi = this;
         hidapi.$scope.status = hidapi.STATUS_WRITING;
         var deferred = this.$q.defer();
-//         console.debug("write:", data);
+        console.debug("write:", data);
         hidapi.device().then(function(dev) {
             // get the device
             if (dev === null) {

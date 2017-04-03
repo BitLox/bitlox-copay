@@ -52,7 +52,6 @@
       });
     }
     $scope.refreshBitlox = function($event) {
-      if($event) $event.stopPropagation();
 
       if(platformInfo.isMobile) {
         api.startScanNew();
@@ -64,7 +63,6 @@
     $scope.connectBle = function(address, $event) {
       if($event) {
         console.log(JSON.stringify($event))
-        $event.stopPropagation();
       }
       console.log('connecting to '+address)
       api.connect(address)
@@ -80,6 +78,12 @@
     });
 
     $scope.$watch('api.getStatus()', function(hidstatus) {
+      checkStatus(hidstatus)
+    });
+    api.$scope && api.$scope.$watch('status', function(hidstatus) {
+      checkStatus(hidstatus)
+    });
+    function checkStatus(hidstatus) {
       console.warn("New device status: " + hidstatus)
       switch(hidstatus) {
       case api.STATUS_CONNECTED:
@@ -126,7 +130,7 @@
           $scope.bitlox.connected = false;
           $scope.bitlox.statusString = null;
       }
-    });
+    }
 
 
   }

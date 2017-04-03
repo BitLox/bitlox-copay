@@ -186,7 +186,7 @@ BleApi.getStatus = function() {
 BleApi.getCurrentResponseData = function() {
   return status;
 }
-this.makeCommand = function(prefix, protoBuf) {
+this.makeCommand = function(protoBuf, prefix) {
     var tmpBuf = protoBuf.encode();
     var messageHex = tmpBuf.toString('hex');
     var txSizeHex = (messageHex.length / 2).toString(16);
@@ -218,7 +218,22 @@ this.newWallet = function(walletNumber, options) {
   currentCommand = "newWallet"
   var protoData = {};
   if (options.isSecure) {
-      protoData.password = true;
+    var password = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes("1"));
+    var bbPass = new ByteBuffer();
+    var parseLength = password.length
+    for (var i = 0; i < parseLength; i += 2) {
+      var value = password.substring(i, i + 2);
+    // 	console.log("value = " + value);
+      var prefix = "0x";
+      var together = prefix.concat(value);
+    // 	console.log("together = " + together);
+      var result = parseInt(together);
+    // 	console.log("result = " + result);
+      bbPass.writeUint8(result);
+    }
+    bbPass.flip();
+
+    protoData.password = bbPass
   } else {
       protoData.password = null;
   }
@@ -229,19 +244,35 @@ this.newWallet = function(walletNumber, options) {
   if (options.name && 'string' === typeof name) {
       name = options.name;
   }
-  var nameHex = hexUtil.toPaddedHex(name, 39) + '00';
-  var nameBuf = hexUtil.hexToByteBuffer(nameHex);
-  nameBuf.flip();
-  protoData.wallet_name = nameBuf;
+  var nameToUseHexed = toHexPadded40bytes(name);
+  console.log("namehexed: " + nameToUseHexed);
+
+  var bbName = new ByteBuffer();
+  var parseLength = nameToUseHexed.length
+  	console.log("utx length = " + parseLength);
+  var i;
+  for (i = 0; i < parseLength; i += 2) {
+    var value = nameToUseHexed.substring(i, i + 2);
+    	console.log("value = " + value);
+    var prefix = "0x";
+    var together = prefix.concat(value);
+    	console.log("together = " + together);
+    var result = parseInt(together);
+    	console.log("result = " + result)
+    bbName.writeUint8(result);
+  }
+  bbName.flip();
+
+  protoData.wallet_name = bbName;
   // make a proto buffer for the data, generate a command and
   // send it off
-  var newWalletMessage = new protoDevice.NewWallet(protoData);
+  var msg = new protoDevice.NewWallet(protoData);
   // if isRestore === true in the option, use the restor command
   // instead (everything else is the same)
   var cmdPrefix = (options.isRestore === true) ?
       deviceCommands.restoreWalletPrefix : deviceCommands.newWalletPrefix;
   // now make a full command using the proto buffer
-  var cmd = this.makeCommand(cmdPrefix, newWalletMessage);
+  var cmd = this.makeCommand(msg,"0004");
   console.warn("NEW WALLET "+ JSON.stringify(protoData))
 
   return this.write(cmd, 300000);
@@ -278,7 +309,7 @@ this.initialize_protobuf_encode = function() {
   var msg = new protoDevice.Initialize({
       "session_id": bb,
   });
-  var tempTXstring = BleApi.constructTxString(msg,"0017")
+  var tempTXstring = BleApi.makeCommand(msg,"0017")
 
   this.write(tempTXstring);
 }
@@ -484,7 +515,7 @@ this.loadWallet = function(num) {
 this.ping = function(args) {
   currentCommand = 'ping'
   var msg = new protoDevice.Ping(args);
-  var tempTXstring = BleApi.constructTxString(msg,"0000")
+  var tempTXstring = BleApi.makeCommand(msg,"0000")
   return this.write(tempTXstring)
 }
 /**
@@ -500,7 +531,7 @@ this.getEntropy = function(entropy_amount) {
   var msg = new protoDevice.GetEntropy({
 	     "number_of_bytes": entropyToGet
   });
-  var tempTXstring = BleApi.constructTxString(msg,"0014")
+  var tempTXstring = BleApi.makeCommand(msg,"0014")
   return this.write(tempTXstring)
 }
 this.constructTxString = function(pinAckMessage,command) {
