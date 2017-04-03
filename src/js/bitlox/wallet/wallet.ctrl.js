@@ -19,7 +19,9 @@
         vm.onCreateFinished = function(res) {
           createToggle = false
           wallet.getBip32().then(function() {
-            _importExtendedPublicKey(wallet)
+            $timeout(vm.readWallets.bind(vm), 1000).then(function() {
+              _importExtendedPublicKey(wallet)              
+            });
           })
         }
 
