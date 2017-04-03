@@ -20,10 +20,10 @@
                 scope.createWallet = function() {
                   console.log("CREATING WALLET NOW")
                     scope.creatingWallet = true;
-                    Wallet.create(scope.newWallet.number, scope.newWallet).then(function() {
+                    Wallet.create(scope.newWallet.number, scope.newWallet).then(function(res) {
                       scope.onFinish(res);
                     }, Toast.errorHandler).finally(function(res) {
-                        reset();
+                        // reset();
                         scope.creatingWallet = false;
                     });
                 };

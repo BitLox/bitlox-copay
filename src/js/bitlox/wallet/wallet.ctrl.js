@@ -17,6 +17,7 @@
         }
         $scope.api = api;
         vm.onCreateFinished = function(res) {
+          createToggle = false
           wallet.getBip32().then(function() {
             _importExtendedPublicKey(wallet)
           })

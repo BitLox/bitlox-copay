@@ -213,9 +213,10 @@ this.makeCommand = function(prefix, protoBuf) {
 ////////////////////////////
 
 this.newWallet = function(walletNumber, options) {
+  currentCommand = "newWallet"
   // // look through the options and fill in the data for the proto
   // // buffer
-  // currentCommand = "newWallet"
+
   // var protoData = {};
   // if (options.isSecure) {
   //   var password = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes("1"));
@@ -309,6 +310,7 @@ this.newWallet = function(walletNumber, options) {
   // make a proto buffer for the data, generate a command and
   // send it off
   var newWalletMessage = new protoDevice.NewWallet(protoData);
+  console.warn(JSON.stringify(protoData))
   // if isRestore === true in the option, use the restor command
   // instead (everything else is the same)
   var cmdPrefix = (options.isRestore === true) ?
@@ -988,10 +990,10 @@ this.write = function(data, timer, noPromise) {
 * 	may send the received message onwards.
 */
 this.sendToProcess = function(rawData) {
-	console.log('data final: ' + rawData);
+	// console.log('data final: ' + rawData);
 	var rawSize = rawData.length;
-	console.log('rawSize: ' + rawSize);
-	console.log('incomingData at top ' + incomingData);
+	// console.log('rawSize: ' + rawSize);
+	// console.log('incomingData at top ' + incomingData);
 
 	// Grab the incoming frame and add it to the global incomingData
       // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
@@ -999,20 +1001,20 @@ this.sendToProcess = function(rawData) {
 	{
 		console.log('or match ');
 		incomingData = incomingData.concat(rawData);
-		console.log('incomingData ' + incomingData);
+		// console.log('incomingData ' + incomingData);
 
     // 			Find out how long the total message is. This must be stored globally as the
     // 			sendToProcess routine is called repeatedly blanking local variables
 		if (incomingData.match(/2323/))
 		{
-			console.log('header match');
+			// console.log('header match');
 			dataReady = true;
 			var headerPosition = incomingData.search(2323)
 			payloadSize = incomingData.substring(headerPosition + 8, headerPosition + 16)
-			console.log('PayloadSize hex: ' + payloadSize);
+			// console.log('PayloadSize hex: ' + payloadSize);
 			var decPayloadSize = parseInt(payloadSize, 16);
-			console.log('decPayloadSize: ' + decPayloadSize);
-			console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
+			// console.log('decPayloadSize: ' + decPayloadSize);
+			// console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
 		}
 	}
   // 		Once the incomingData has grown to the length declared, send it onwards.
