@@ -18,11 +18,12 @@
         $scope.api = api;
         vm.onCreateFinished = function(res) {
           $scope.createToggle = false
-          wallet.getBip32().then(function() {
-            $timeout(vm.readWallets.bind(vm), 1000).then(function() {
-              _importExtendedPublicKey(wallet)
-            });
-          })
+          $timeout(vm.readWallets.bind(vm), 100)
+          // wallet.getBip32().then(function() {
+          //   $timeout(vm.readWallets.bind(vm), 1000).then(function() {
+          //     _importExtendedPublicKey(wallet)
+          //   });
+          // })
         }
 
         // dave says this comes from the import.js file by copay, with edits
