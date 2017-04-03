@@ -17,10 +17,10 @@
         }
         $scope.api = api;
         vm.onCreateFinished = function(res) {
-          createToggle = false
+          $scope.createToggle = false
           wallet.getBip32().then(function() {
             $timeout(vm.readWallets.bind(vm), 1000).then(function() {
-              _importExtendedPublicKey(wallet)              
+              _importExtendedPublicKey(wallet)
             });
           })
         }
