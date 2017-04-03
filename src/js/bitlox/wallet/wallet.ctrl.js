@@ -16,17 +16,10 @@
           api = bleapi;
         }
         $scope.api = api;
-        vm.onCreateFinished = function() {
-          console.log("oncreate finished")
-          if(res.type === api.TYPE_ERROR) {
-            console.warn("wallet creation error")
-            console.warn(e)
-          } else if (res.type === api.TYPE_SUCCESS) {
-            $state.goBack();
-            wallet.getBip32().then(function() {
-              _importExtendedPublicKey(wallet)
-            })
-          }
+        vm.onCreateFinished = function(res) {
+          wallet.getBip32().then(function() {
+            _importExtendedPublicKey(wallet)
+          })
         }
 
         // dave says this comes from the import.js file by copay, with edits
