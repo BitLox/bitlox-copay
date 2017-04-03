@@ -1,4 +1,4 @@
-<ion-view id="view-create-bitlox-wallet">
+<ion-view id="view-create-bitlox-wallet" ng-controller="WalletCtrl as vm">
   <ion-nav-bar class="bar-royal">
     <ion-nav-title>Create a BitLox Wallet</ion-nav-title>
     <ion-nav-back-button>
@@ -6,6 +6,7 @@
   </ion-nav-bar>
 
   <ion-content>
-    <wallet-create></wallet-create>
+    <wallet-create available-numbers="vm.availableWalletNumbers"
+                   on-finish="vm.onCreateFinished()"></wallet-create>
   </ion-content>
 </ion-view>

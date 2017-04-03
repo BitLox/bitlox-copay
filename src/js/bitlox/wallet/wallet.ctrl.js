@@ -4,9 +4,9 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidweb', 'hidchrome', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi', 'platformInfo'];
+    WalletCtrl.$inject = ['$scope', '$state', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidweb', 'hidchrome', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi', 'platformInfo'];
 
-    function WalletCtrl($scope, $timeout, MAX_WALLETS, Wallet, Toast, hidweb, hidchrome, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
+    function WalletCtrl($scope, $state, $timeout, MAX_WALLETS, Wallet, Toast, hidweb, hidchrome, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
         var vm = this;
         var api = hidweb;
         if (platformInfo.isChromeApp) {
@@ -16,13 +16,15 @@
           api = bleapi;
         }
         $scope.api = api;
-
+        vm.onCreateFinished = function(wallet) {
+          console.log("oncreate finished")
+          $state.goBack();
+        }
 
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
 
           var opts = {};
-          console.log(JSON.stringify(wallet))
           opts.externalSource = 'bitlox'
           opts.extendedPublicKey = wallet.xpub
           opts.derivationPath = derivationPathHelper.default
@@ -43,10 +45,11 @@
           opts.network = true
           opts.bwsurl = 'https://bws.bitpay.com/bws/api'
           ongoingProcess.set('importingWallet', true);
-          console.warn("START IMPORTING")
+          // console.warn("START IMPORTING")
+          // console.warn(JSON.stringify(opts))
           profileService.createWallet(opts, function(err, walletId) {
             ongoingProcess.set('importingWallet', false);
-            console.warn("DONE IMPORTING")
+            // console.warn("DONE IMPORTING")
             if (err) {
               console.error(err)
               popupService.showAlert(gettextCatalog.getString('Error'), err);
@@ -55,13 +58,9 @@
 
 
             walletService.updateRemotePreferences(walletId);
-            $ionicHistory.removeBackView();
-            $state.go('tabs.home');
+            $state.goBack();
 
           });
-          // $timeout(function() {
-          //
-          // }, 100);
         };
 
         if(chrome && chrome.hid) {
@@ -97,12 +96,19 @@
             wallet.open()
                 .then(function() {
                     vm.openWallet = wallet;
-                    console.debug("done loading wallet", wallet.number);
-                    vm.openingWallet = null; // changed from -99 because I think it's fucking things up
                     console.log("WALLET LOADED")
                     console.log(wallet.xpub)
                     _importExtendedPublicKey(wallet)
-                }, Toast.errorHandler);
+                }, Toast.errorHandler, function(status) {
+                    console.debug("open notify", status);
+                    if (status === Wallet.NOTIFY_XPUB_LOADED) {
+                        vm.loadingXpub = false;
+                    }
+                })
+                .finally(function() {
+                    console.debug("done loading wallet", wallet.number);
+                    vm.openingWallet = -99;
+                });
         };
 
         vm.refreshBalance = function() {
@@ -160,6 +166,7 @@
         }
 
         function reset() {
+            console.log("RESET WALLET CONTROLLER")
             // status variables
             vm.readingWallets = true;
             vm.openingWallet = -99;

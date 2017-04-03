@@ -274,7 +274,7 @@
 
         Wallet.prototype.open = function() {
             var wallet = this;
-            // WalletStatus.status = WalletStatus.STATUS_LOADING;
+            WalletStatus.status = WalletStatus.STATUS_LOADING;
             var deferred = $q.defer();
             api.loadWallet(this.number).then(function(data) {
                 if (data.type !== api.TYPE_SUCCESS) {

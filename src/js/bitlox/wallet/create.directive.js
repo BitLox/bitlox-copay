@@ -9,6 +9,8 @@
     function walletCreate(Wallet, Toast, wordlist, $stateParams) {
         return {
             scope: {
+                availableNumbers: '=',
+                onFinish: '&',
             },
             templateUrl: 'views/bitlox/directive-create-bitlox-wallet.html',
             link: function(scope) {
@@ -16,12 +18,17 @@
                 reset();
 
                 scope.createWallet = function() {
+                  console.log("CREATING WALLET NOW")
                     scope.creatingWallet = true;
                     Wallet.create(scope.newWallet.number, scope.newWallet).then(function() {
+                    }, Toast.errorHandler).finally(function(res) {
+                        if(res.type === 'error') {
+                          console.warn("wallet creation error")
+                          console.warn(e)
+                        }
                         reset();
-                        return scope.onFinish();
-                    }, Toast.errorHandler).finally(function() {
                         scope.creatingWallet = false;
+                        return scope.onFinish();
                     });
                 };
 
@@ -36,7 +43,8 @@
                     }
                 });
                 scope.availableNumbers = $stateParams.availableNumbers;
-                console.log(scope.availableNumbers)
+                console.log("AVAILABLE WALLET NUMBERS")
+                console.log(JSON.stringify(scope.availableNumbers))
 
                 scope.updateWordNumbers = function() {
                     if (!scope.userWords) {

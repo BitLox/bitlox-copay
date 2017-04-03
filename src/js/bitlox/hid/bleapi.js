@@ -3,7 +3,7 @@
 
 
 angular.module('hid')
-.service('bleapi',['$rootScope','$q', '$timeout', '$interval','hidCommands', function BleApi($rootScope,$q,$timeout,$interval, hidCommands) {
+.service('bleapi',['$rootScope','$q', '$timeout', '$interval','hidCommands', 'hexUtil' ,function BleApi($rootScope,$q,$timeout,$interval, hidCommands, hexUtil) {
 var BleApi = this
 
 
@@ -27,6 +27,23 @@ BleApi.STATUS_CONNECTING       = "connecting";
 BleApi.STATUS_READING          = "reading";
 BleApi.STATUS_WRITING          = "writing";
 BleApi.STATUS_IDLE         = "idle";
+
+
+BleApi.TYPE_INITIALIZE          = 'initialize';
+BleApi.TYPE_PUBLIC_ADDRESS     =  'public address';
+BleApi.TYPE_ADDRESS_COUNT      =  'address count';
+BleApi.TYPE_WALLET_LIST        =  'wallet list';
+BleApi.TYPE_PONG               =  'pong';
+BleApi.TYPE_SUCCESS            =  'success';
+BleApi.TYPE_ERROR              =  'error';
+BleApi.TYPE_UUID               =  'uuid';
+BleApi.TYPE_SIGNATURE          =  'signature';
+BleApi.TYPE_PLEASE_ACK         =  'please ack';
+BleApi.TYPE_PLEASE_OTP         =  'please otp';
+BleApi.TYPE_XPUB               =  'xpub';
+BleApi.TYPE_SIGNATURE_RETURN   =  'signature return';
+BleApi.TYPE_MESSAGE_SIGNATURE  =  'message signature';
+BleApi.TYPE_ENTROPY_RETURN  =  'entropy return';
 
 /*
  * The BLE plugin is loaded asynchronously so the ble
@@ -169,7 +186,68 @@ BleApi.getStatus = function() {
 BleApi.getCurrentResponseData = function() {
   return status;
 }
+this.makeCommand = function(prefix, protoBuf) {
+    var tmpBuf = protoBuf.encode();
+    var messageHex = tmpBuf.toString('hex');
+    var txSizeHex = (messageHex.length / 2).toString(16);
+    while (txSizeHex.length < 8) {
+        txSizeHex = "0" + txSizeHex;
+    }
+    return prefix + txSizeHex + messageHex;
+};
+////////////////////////////
+// New wallet
+//
+// Responses: Success or Failure
+// Response interjections: ButtonRequest
+// wallet_name is stored purely for the convenience of the host. It should be
+// a null-terminated UTF-8 encoded string with a maximum length of 40 bytes.
+// To create an unencrypted wallet, exclude password.
+// message NewWallet
+// {
+// 	optional uint32 wallet_number = 1 ;//[default = 0];
+// 	optional bytes password = 2;
+// 	optional bytes wallet_name = 3;
+// 	optional bool is_hidden = 4 ;//[default = false];
+// }
+////////////////////////////
 
+this.newWallet = function(walletNumber, options) {
+  // look through the options and fill in the data for the proto
+  // buffer
+  currentCommand = "newWallet"
+  var protoData = {};
+  if (options.isSecure) {
+      var pass = new ByteBuffer();
+      pass.writeUint8(0x74);
+      pass.flip();
+      protoData.password = pass;
+  } else {
+      protoData.password = null;
+  }
+  protoData.is_hidden = options.isHidden ? true : false;
+  // get the name and put it in a byte buffer
+  var name =  "Wallet " + walletNumber;
+  if (options.name && 'string' === typeof name) {
+      name = options.name;
+  }
+  var nameHex = hexUtil.toPaddedHex(name, 39) + '00';
+  var nameBuf = hexUtil.hexToByteBuffer(nameHex);
+  nameBuf.flip();
+  protoData.wallet_name = nameBuf;
+  // make a proto buffer for the data, generate a command and
+  // send it off
+  var newWalletMessage = new protoDevice.NewWallet(protoData);
+  // if isRestore === true in the option, use the restor command
+  // instead (everything else is the same)
+  var cmdPrefix = (options.isRestore === true) ?
+      deviceCommands.restoreWalletPrefix : deviceCommands.newWalletPrefix;
+  // now make a full command using the proto buffer
+  var cmd = this.makeCommand(cmdPrefix, newWalletMessage);
+  console.warn("NEW WALLET "+ JSON.stringify(protoData))
+
+  return this.write(cmd, 300000);
+};
 
 /**
 *	Initialize device
@@ -206,7 +284,10 @@ this.initialize_protobuf_encode = function() {
 
   this.write(tempTXstring);
 }
-
+this.deleteWallet = function(walletNumber) {
+    var cmd = this.getWalletCommand('delete', walletNumber);
+    return this.write(cmd);
+};
 
 this.getWalletCommand = function(type, walletNumber) {
     var cmd = deviceCommands[type + 'WalletPrefix'];
@@ -387,7 +468,10 @@ this.genTransaction = function() {
     }
   }
 }
-
+this.scanWallet = function() {
+  currentCommand = 'scanWallet'
+  return this.write(deviceCommands.scan_wallet);
+}
 this.listWallets = function() {
   currentCommand = 'listWallets'
   return this.write(deviceCommands.list_wallets);
@@ -719,8 +803,8 @@ this.connect = function(address)	{
 		});
 }
 // old sliceAndWrite64, 'data' is a command constant
-this.write = function(data, timer) {
-  currentPromise = $q.defer();
+this.write = function(data, timer, noPromise) {
+  if(!noPromise) currentPromise = $q.defer();
   console.log("ready to write status: " + status + ": command: " +data)
   if(status !== BleApi.STATUS_CONNECTED && status !== BleApi.STATUS_IDLE) {
     // return if the device isn't currently idle
@@ -813,14 +897,18 @@ this.write = function(data, timer) {
   }
   status = BleApi.STATUS_READING
   $rootScope.$applyAsync();
-  if(!timer) timer = 30000;
-  timeout = setTimeout(function() {
-    console.warn("TIMEOUT of Write Command")
-    evothings.ble.close(BleApi.deviceHandle)
-    status = BleApi.STATUS_DISCONNECTED
-    $rootScope.$applyAsync()
-    currentPromise.reject(new Error('Command Write Timeout'))
-  },timer)
+
+  if(!noPromise) {
+    if(!timer) timer = 30000;
+    console.log(timer + " seconds. hurry up!")
+    timeout = setTimeout(function() {
+      console.warn("TIMEOUT of Write Command")
+      evothings.ble.close(BleApi.deviceHandle)
+      status = BleApi.STATUS_DISCONNECTED
+      $rootScope.$applyAsync()
+      currentPromise.reject(new Error('Command Write Timeout'))
+    },timer)
+  }
   return currentPromise.promise;
 };
 /**
@@ -890,20 +978,20 @@ this.finalPrepProcess = function(dataToProcess) {
     }
 }
 
-this.sendData = function(data) {
+this.sendData = function(data,type) {
   currentCommand = null;
   status = BleApi.STATUS_IDLE;
   $rootScope.$applyAsync()
   console.log('sending data back to promise')
   // console.log(JSON.stringify(data))
   clearTimeout(timeout)
-  currentPromise.resolve({payload:data});
+  currentPromise.resolve({type: type, payload:data});
 }
-this.sendError = function(data) {
+this.sendError = function(data,type) {
   currentCommand = null;
   status = BleApi.STATUS_IDLE;
   $rootScope.$applyAsync()
-  currentPromise.reject(new Error(data));
+  currentPromise.resolve({type: type, data: data});
 }
 this.processResults = function(command, length, payload) {
 
@@ -941,12 +1029,12 @@ this.processResults = function(command, length, payload) {
 
     case "32": // Wallet list
       var walletMessage = protoDevice.Wallets.decodeHex(payload).wallet_info;
-      this.sendData({wallets:walletMessage})
+      this.sendData({wallets:walletMessage},BleApi.TYPE_WALLET_LIST)
     break;
 
     case "33": // Ping response
       var PingResponse = protoDevice.PingResponse.decodeHex(payload);
-      this.sendData(PingResponse)
+      this.sendData(PingResponse,BleApi.TYPE_PONG)
     break;
     case "34": // success
       switch (currentCommand) {
@@ -976,15 +1064,7 @@ this.processResults = function(command, length, payload) {
 					currentCommand = '';
 				break;
 	      case "newWallet":
-					window.plugins.toast.show('Refreshing your wallet list', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
-
-					$('#helpBlock').text('Click the wallet name and enter the PIN on your BitLox');
-					pausecomp(15000);
-					BleApi.app.sliceAndWrite64(deviceCommands.list_wallets);
-
-					BleApi.displayStatus('Listing refreshed');
-
-					currentCommand = '';
+					this.sendData({},BleApi.TYPE_SUCCESS)
 				break;
 				case "formatDevice":
 					window.plugins.toast.show('Format successful', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
@@ -1005,10 +1085,8 @@ this.processResults = function(command, length, payload) {
 					// document.getElementById("device_signed_transaction").value = '';
 					// $("#rawTransactionStatus").addClass('hidden');
 					// $('#myTab a[href="#walletDetail"]').tab('show');
-		      BleApi.displayStatus('Waiting for data');
-          status = BleApi.STATUS_IDLE;
-          $rootScope.$applyAsync();
-  				BleApi.write(deviceCommands.scan_wallet);
+		      BleApi.displayStatus('Got wallet, waiting for XPUB request from wallet factory...');
+          this.sendData({}, BleApi.TYPE_SUCCESS);
       		// $("#renameWallet").attr('disabled',false);
       		// $("#newWalletButton").attr('disabled',false);
       		// $(".wallet_row").attr('disabled',false);
@@ -1032,7 +1110,7 @@ this.processResults = function(command, length, payload) {
 
     case "35": // general purpose error/cancel
       var Failure = protoDevice.Failure.decodeHex(payload);
-      this.sendError(Failure)
+      this.sendError({}, Failure,BleApi.TYPE_ERROR)
     	switch (currentCommand) {
 				case "deleteWallet":
         // 							BleApi.displayStatus('Wallet deleted');
@@ -1091,22 +1169,22 @@ this.processResults = function(command, length, payload) {
     case "36": // device uuid return
       var DeviceUUID = protoDevice.DeviceUUID.decodeHex(payload);
       //DeviceUUID.device_uuid.toString("hex")
-      this.sendData(DeviceUUID)
+      this.sendData(DeviceUUID,BleApi.TYPE_UUID)
       break;
 
     case "37": // entropy return
       var Entropy = protoDevice.Entropy.decodeHex(payload);
-      this.sendData(Entropy)
+      this.sendData(Entropy,BleApi.TYPE_ENTROPY_RETURN)
       break;
 
     case "39": // signature return [original]
       var Signature = protoDevice.Signature.decodeHex(payload);
       // 					Signature.signature_data
-      this.sendData(Signature)
+      this.sendData(Signature,BleApi.TYPE_SIGNATURE)
       break;
 
     case "50": // #define PACKET_TYPE_ACK_REQUEST			0x50
-      this.write(deviceCommands.button_ack);
+      this.write(deviceCommands.button_ack,BleApi.TYPE_PLEASE_ACK);
       break;
 
     case "56": // #define PACKET_TYPE_OTP_REQUEST			0x56
@@ -1116,9 +1194,7 @@ this.processResults = function(command, length, payload) {
 
     case "62": // parse & insert xpub from current wallet //RETURN from scan wallet
 			var CurrentWalletXPUB = protoDevice.CurrentWalletXPUB.decodeHex(payload);
-      BleApi.displayStatus('xpub received');
-      console.log(CurrentWalletXPUB.xpub)
-      this.sendData(CurrentWalletXPUB)
+      this.sendData(CurrentWalletXPUB,BleApi.TYPE_XPUB)
     break;
 
     case "64": // signature return
@@ -1151,7 +1227,7 @@ this.processResults = function(command, length, payload) {
       // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
       //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
       BleApi.displayStatus('Signature received');
-      this.sendData({rawTransaction:unSignedTransaction})
+      this.sendData({rawTransaction:unSignedTransaction},BleApi.TYPE_SIGNATURE_RETURN)
       // if(currentCommand == 'signAndSend')
       // {
       //     BleApi.displayStatus('Submitting...');
@@ -1923,48 +1999,6 @@ this.processResults = function(command, length, payload) {
 	}
 
 
-/**
-*	Deletes wallet via direct input of a wallet number
-*	wallet not required to be loaded!
-*
-*	parameters: wallet number
-*/
-	function directDeleteWallet(walletToLoad) {
-		currentCommand = 'deleteWallet';
-        var ProtoBuf = dcodeIO.ProtoBuf;
-        var ByteBuffer = dcodeIO.ByteBuffer;
-        var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-            Device = builder.build();
-
-		var walletToLoadNumber = Number(walletToLoad);
-        var loadWalletMessage = new protoDevice.DeleteWallet({
-			"wallet_handle": walletToLoadNumber
-        });
-        tempBuffer = loadWalletMessage.encode();
-        var tempTXstring = tempBuffer.toString('hex');
-        document.getElementById("temp_results").innerHTML = tempTXstring;
-        txSize = d2h((tempTXstring.length) / 2).toString('hex');
-	console.log("tempTXstring = " + tempTXstring);
-// 	console.log("txSize.length = " + txSize.length);
-        var j;
-        var txLengthOriginal = txSize.length;
-        for (j = 0; j < (8 - txLengthOriginal); j++) {
-            var prefix = "0";
-            txSize = prefix.concat(txSize);
-        }
-// 	console.log("txSizePadded = " + txSize);
-        tempTXstring = txSize.concat(tempTXstring);
-
-        var command = "0016";
-        tempTXstring = command.concat(tempTXstring);
-
-        var magic = "2323"
-        tempTXstring = magic.concat(tempTXstring);
-        console.log("tempTXstring = " + tempTXstring);
-
-        BleApi.app.sliceAndWrite64(tempTXstring);
-	}
-
 
 
 
@@ -2332,128 +2366,6 @@ this.processResults = function(command, length, payload) {
 			window.plugins.toast.show('Canceled', 'short', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 		}
 	}
-
-////////////////////////////
-// New wallet
-//
-// Responses: Success or Failure
-// Response interjections: ButtonRequest
-// wallet_name is stored purely for the convenience of the host. It should be
-// a null-terminated UTF-8 encoded string with a maximum length of 40 bytes.
-// To create an unencrypted wallet, exclude password.
-// message NewWallet
-// {
-// 	optional uint32 wallet_number = 1 ;//[default = 0];
-// 	optional bytes password = 2;
-// 	optional bytes wallet_name = 3;
-// 	optional bool is_hidden = 4 ;//[default = false];
-// }
-////////////////////////////
-
-    function constructNewWallet(nameToUse) {
-        var ProtoBuf = dcodeIO.ProtoBuf;
-        var ByteBuffer = dcodeIO.ByteBuffer;
-        var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-            Device = builder.build();
-
-// WALLET NUMBER
-// 		var walletNumber = Number(document.getElementById('new_wallet_number').value);
-		var walletNumber = 49;
-
-// PASSWORD *DEPRECATED* Value in this field merely toggles the on-device password routine
-// 		var passwordString = document.getElementById('new_wallet_password').value;
-		var passwordString = 'fred';
-		if (passwordString != ''){
-			var password = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes(passwordString));
-			console.log("pass: " + password);
-			var bbPass = new ByteBuffer();
-			var parseLength = password.length
-	// 	console.log("utx length = " + parseLength);
-			var i;
-			for (i = 0; i < parseLength; i += 2) {
-				var value = password.substring(i, i + 2);
-	// 	console.log("value = " + value);
-				var prefix = "0x";
-				var together = prefix.concat(value);
-	// 	console.log("together = " + together);
-				var result = parseInt(together);
-	// 	console.log("result = " + result);
-
-				bbPass.writeUint8(result);
-			}
-			bbPass.flip();
-		}else{
-			var bbPass = null;
-		}
-
-// NAME
-//         var nameToUse = document.getElementById('new_wallet_name').value;
-        console.log("name: " + nameToUse);
-
-        var nameToUseHexed = toHexPadded40bytes(nameToUse);
-        console.log("namehexed: " + nameToUseHexed);
-
-		var bbName = new ByteBuffer();
-        var parseLength = nameToUseHexed.length
-// 	console.log("utx length = " + parseLength);
-        var i;
-        for (i = 0; i < parseLength; i += 2) {
-            var value = nameToUseHexed.substring(i, i + 2);
-// 	console.log("value = " + value);
-            var prefix = "0x";
-            var together = prefix.concat(value);
-// 	console.log("together = " + together);
-            var result = parseInt(together);
-// 	console.log("result = " + result);
-
-            bbName.writeUint8(result);
-        }
-        bbName.flip();
-// end NAME
-
-
-// HIDDEN
-// 		var is_hidden = document.getElementById("new_wallet_isHidden").checked;
-		var is_hidden = false;
-
-
-        var newWalletMessage = new protoDevice.NewWallet({
-        	"wallet_number": walletNumber
-        	,
-        	"password": bbPass
-        	,
-        	"wallet_name": bbName
-        	,
-        	"is_hidden": is_hidden
-        });
-
-        tempBuffer = newWalletMessage.encode();
-        var tempTXstring = tempBuffer.toString('hex');
-        document.getElementById("temp_results").innerHTML = tempTXstring;
-        txSize = d2h((tempTXstring.length) / 2).toString('hex');
-	console.log("tempTXstring = " + tempTXstring);
-// 	console.log("txSize.length = " + txSize.length);
-        var j;
-        var txLengthOriginal = txSize.length;
-        for (j = 0; j < (8 - txLengthOriginal); j++) {
-            var prefix = "0";
-            txSize = prefix.concat(txSize);
-        }
-// 	console.log("txSizePadded = " + txSize);
-        tempTXstring = txSize.concat(tempTXstring);
-
-        var command = "0004";
-        tempTXstring = command.concat(tempTXstring);
-
-        var magic = "2323"
-        tempTXstring = magic.concat(tempTXstring);
-        console.log("tempTXstring = " + tempTXstring);
-
-        BleApi.app.sliceAndWrite64(tempTXstring);
-
-//         return renameCommand;
-    }
-
 
 
 
