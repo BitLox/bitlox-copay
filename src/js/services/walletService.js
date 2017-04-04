@@ -40,13 +40,15 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     });
   };
   var _signWithBitlox = function(wallet, txp, cb) {
-    $log.info('Requesting Bitlox  to sign the transaction');
+    $log.info('Requesting Bitlox to sign the transaction');
 
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
-    bitlox.api.signTx(xPubKeys, txp).then(function(result) {
-      $log.debug('Bitlox response', result);
-      txp.signatures = result.signatures;
-      return wallet.signTxProposal(txp, cb);
+    bitlox.prepareToSignTx(xPubKeys, txp).then(function(result) {
+      bitlox.api.signTx(txp).then(function(result) {
+        $log.debug('Bitlox response', result);
+        txp.signatures = result.signatures;
+        return wallet.signTxProposal(txp, cb);
+      });
     }, function(err) {
       return cb(err)
     });
