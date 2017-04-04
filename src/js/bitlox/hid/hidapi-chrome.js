@@ -576,8 +576,8 @@
             // make a handler
 
           var inputPath = input.path.split('/')
-            input.chain = inputPath[1]
-            input.chainIndex = inputPath[2]
+            input.chain = parseInt(inputPath[1],10)
+            input.chainIndex = parseInt(inputPath[2],10)
             
 
             var handler = hidapi.makeAddressHandler(input.chain, input.chainIndex);
@@ -600,7 +600,7 @@
             // hash type
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
-            console.log(dataString)
+
 
             var dataBuf = hidapi.hexUtil.hexToByteBuffer(dataString);
             dataBuf.flip();
@@ -609,6 +609,8 @@
                 transaction_data: dataBuf
             });
             var cmd = hidapi.makeCommand(hidapi.commands.signTxPrefix, txMessage);
+            console.log('sending')
+            console.log(cmd)
             hidapi._doCommand(cmd, hidapi.TYPE_SIGNATURE_RETURN).then(deferred.resolve, deferred.reject);
         });
         return deferred.promise;

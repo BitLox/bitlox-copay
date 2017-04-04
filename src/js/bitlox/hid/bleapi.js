@@ -334,8 +334,8 @@ this.signTransaction = function(opts) {
     var inputData = [];
     async.eachSeries(opts.tx.inputs, function(input, next) {
         var inputPath = input.path.split('/')
-        input.chain = inputPath[1]
-        input.chainIndex = inputPath[2]
+        input.chain = parseInt(inputPath[1])
+        input.chainIndex = parseInt(inputPath[2])
 
         // make a handler
         var handler = BleApi.makeAddressHandler(input.chain, input.chainIndex);
