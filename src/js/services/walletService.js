@@ -43,14 +43,11 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     $log.info('Requesting Bitlox to sign the transaction');
 
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
-    bitlox.prepareToSignTx(xPubKeys, txp).then(function(result) {
-      bitlox.api.signTx(txp).then(function(result) {
-        $log.debug('Bitlox response', result);
-        txp.signatures = result.signatures;
-        return wallet.signTxProposal(txp, cb);
-      });
-    }, function(err) {
-      return cb(err)
+    var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
+    bitlox.api.signTransaction(opts).then(function(result) {
+      $log.debug('Bitlox response', result);
+      txp.signatures = result.signatures;
+      return wallet.signTxProposal(txp, cb);
     });
   };
   root.invalidateCache = function(wallet) {

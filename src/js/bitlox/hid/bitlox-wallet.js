@@ -3,12 +3,12 @@
 angular.module('hid')
 .service('bitlox',
 ['platformInfo',
-'bitloxChromeHid',
-'bitloxWebHid',
+'bitloxHidChrome',
+'bitloxHidWeb',
 'bitloxBleApi',
 function Bitlox(platformInfo,
-bitloxChromeHid,
-bitloxWebHid,
+bitloxHidChrome,
+bitloxHidWeb,
 bitloxBleApi) {
 
 this.api = bitloxHidWeb
@@ -19,4 +19,4 @@ else if(platformInfo.isMobile) {
   this.api = bitloxBleApi
 }
 
-})})(window.angular);
+}])})(window.angular);

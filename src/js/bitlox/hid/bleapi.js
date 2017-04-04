@@ -313,9 +313,9 @@ this.makeAddressHandler = function(chain, chainIndex) {
         address_handle_index: chainIndex
     };
 
-    if (chain === 'receive') {
+    if (chain === 'receive' || chain === this.RECEIVE_CHAIN.toString() || chain === this.RECEIVE_CHAIN) {
         handler.address_handle_chain = this.RECEIVE_CHAIN;
-    } else if (chain === 'change') {
+    } else if (chain === 'change' || chain === this.CHANGE_CHAIN || chain === this.CHANGE_CHAIN) {
         handler.address_handle_chain = this.CHANGE_CHAIN;
     } else {
         throw new Error("Invalid chain on input: " + chain);
@@ -328,22 +328,23 @@ this.makeAddressHandler = function(chain, chainIndex) {
 // Sign Transaction Prep
 ////////////////////////////
 // tx is from bitcoin/transaction.factory.js
-this.signTransaction = function(tx) {
+this.signTransaction = function(opts) {
     var deferred = this.$q.defer();
     var addrHandlers = [];
     var inputData = [];
-    async.eachSeries(tx.inputs, function(input, next) {
+    async.eachSeries(opts.tx.inputs, function(input, next) {
         var inputPath = input.path.split('/')
         input.chain = inputPath[1]
         input.chainIndex = inputPath[2]
+
         // make a handler
         var handler = BleApi.makeAddressHandler(input.chain, input.chainIndex);
         // add to the handler array
         addrHandlers.push(handler);
         // get the hex of the full input transaction
-        txUtil.getTxHex(input.tx_hash_big_endian).then(function(hex) {
+        hidapi.getTxHex(input.txid).then(function(hex) {
             var thisInputData = '01';
-            thisInputData += hexUtil.intToBigEndianString(input.tx_output_n, 4);
+            thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
             thisInputData += hex;
             inputData.push(thisInputData);
             return next();
@@ -353,7 +354,7 @@ this.signTransaction = function(tx) {
             return deferred.reject(err);
         }
         var dataString = '00';
-        dataString += tx.unsignedHex;
+        dataString += opts.rawTx
         // hash type
         dataString += '01000000';
         dataString = inputData.join('') + dataString;
@@ -365,7 +366,8 @@ this.signTransaction = function(tx) {
             transaction_data: dataBuf
         });
         var cmd = BleApi.makeCommand(deviceCommands.signTxPrefix, msg);
-
+        console.warn('sending something')
+        console.warn(cmd)
         BleApi.write(cmd, 9000000).then(deferred.resolve, deferred.reject);
     });
     return deferred.promise;

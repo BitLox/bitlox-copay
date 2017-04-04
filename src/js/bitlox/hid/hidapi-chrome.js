@@ -566,21 +566,27 @@
     };
 
     // tx is from bitcoin/transaction.factory.js
-    HidAPI.prototype.signTransaction = function(tx) {
+    HidAPI.prototype.signTransaction = function(opts) {
         var hidapi = this;
         var deferred = this.$q.defer();
         var Device = this.protoBuilder();
         var addrHandlers = [];
         var inputData = [];
-        async.eachSeries(tx.inputs, function(input, next) {
+        async.eachSeries(opts.tx.inputs, function(input, next) {
             // make a handler
+
+          var inputPath = input.path.split('/')
+            input.chain = inputPath[1]
+            input.chainIndex = inputPath[2]
+            
+
             var handler = hidapi.makeAddressHandler(input.chain, input.chainIndex);
             // add to the handler array
             addrHandlers.push(handler);
             // get the hex of the full input transaction
-            hidapi.getTxHex(input.tx_hash_big_endian).then(function(hex) {
+            hidapi.getTxHex(input.txid).then(function(hex) {
                 var thisInputData = '01';
-                thisInputData += hidapi.hexUtil.intToBigEndianString(input.tx_output_n, 4);
+                thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
                 thisInputData += hex;
                 inputData.push(thisInputData);
                 return next();
@@ -590,10 +596,11 @@
                 return deferred.reject(err);
             }
             var dataString = '00';
-            dataString += tx.unsignedHex;
+            dataString += opts.rawTx
             // hash type
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
+            console.log(dataString)
 
             var dataBuf = hidapi.hexUtil.hexToByteBuffer(dataString);
             dataBuf.flip();
@@ -649,9 +656,9 @@
             address_handle_index: chainIndex
         };
 
-        if (chain === 'receive') {
+        if (chain === 'receive' || chain === this.RECEIVE_CHAIN.toString() || chain === this.RECEIVE_CHAIN) {
             handler.address_handle_chain = this.RECEIVE_CHAIN;
-        } else if (chain === 'change') {
+        } else if (chain === 'change' || chain === this.CHANGE_CHAIN || chain === this.CHANGE_CHAIN) {
             handler.address_handle_chain = this.CHANGE_CHAIN;
         } else {
             throw new Error("Invalid chain on input: " + chain);
