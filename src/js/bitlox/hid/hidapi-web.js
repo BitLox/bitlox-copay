@@ -2,7 +2,7 @@
     'use strict';
 
     angular.module('hid')
-        .service('hidweb', HidAPI);
+        .service('bitloxHidWeb', HidAPI);
 
     HidAPI.$inject = [
         '$q', '$timeout', '$interval', '$rootScope',

@@ -4,7 +4,7 @@
   angular.module('app.core')
       .controller('BitLoxCtrl', BitLoxCtrl);
 
-  BitLoxCtrl.$inject = ['$scope', 'hidchrome', 'hidweb', 'bleapi', 'platformInfo'];
+  BitLoxCtrl.$inject = ['$scope', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'platformInfo'];
 
   function BitLoxCtrl($scope, hidchrome, hidweb, bleapi, platformInfo) {
 

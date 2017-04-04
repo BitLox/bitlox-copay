@@ -7,13 +7,13 @@
     WalletFactory.$inject = [
         '$q', '$timeout',
         'WalletStatus',
-        'hidchrome', 'hidweb', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'bleapi', 'platformInfo'
+         'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'platformInfo'
       ];
 
     function WalletFactory(
         $q, $timeout,
         WalletStatus,
-        hidchrome,hidweb, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath, bleapi, platformInfo) {
+        hidchrome,hidweb, bleapi, BIP32, Transaction, addressInfo, MIN_OUTPUT, bcMath, platformInfo) {
 
         var Wallet = function(data) {
             this.number = data.wallet_number;

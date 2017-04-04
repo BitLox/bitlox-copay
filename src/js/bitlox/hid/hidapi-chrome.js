@@ -2,7 +2,7 @@
     'use strict';
 
     angular.module('hid')
-        .service('hidchrome', HidAPI);
+        .service('bitloxHidChrome', HidAPI);
 
     HidAPI.$inject = [
         '$q', '$timeout', '$interval', '$rootScope',
@@ -266,12 +266,12 @@
                 return hidapi.read(serialData, wait);
             }
 
-// 			bonehead forgot to put in the edge split case
-			if (((serialData[60] !== 2) || (serialData[61] !== 3)) && ((serialData[62] === 2) && (serialData[63] === 3))) {
-				//                     console.log('EDGE:' + sD);
-				serialData = serialData + hidapi.read(serialData, wait);
-				//                     console.log('EDGE WRAP:' + sD);
-			}
+            // 			bonehead forgot to put in the edge split case
+      			if (((serialData[60] !== 2) || (serialData[61] !== 3)) && ((serialData[62] === 2) && (serialData[63] === 3))) {
+      			  //                     console.log('EDGE:' + sD);
+		          serialData = serialData + hidapi.read(serialData, wait);
+      			  //                     console.log('EDGE WRAP:' + sD);
+      			}
 
 
             if (magicRegexp.test(serialData)) {
@@ -314,6 +314,8 @@
             } else {
                 return null;
             }
+        },function(e) {
+          console.warn("error in read", e)
         }).finally(function() {
             hidapi.$scope.status = hidapi.STATUS_CONNECTED;
         });

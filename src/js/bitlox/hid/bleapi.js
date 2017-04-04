@@ -3,7 +3,7 @@
 
 
 angular.module('hid')
-.service('bleapi',['$rootScope','$q', '$timeout', '$interval','hidCommands', 'hexUtil' ,function BleApi($rootScope,$q,$timeout,$interval, hidCommands, hexUtil) {
+.service('bitloxBleApi',['$rootScope','$q', '$timeout', '$interval','hidCommands', 'hexUtil' ,function BleApi($rootScope,$q,$timeout,$interval, hidCommands, hexUtil) {
 var BleApi = this
 
 
@@ -214,78 +214,6 @@ this.makeCommand = function(prefix, protoBuf) {
 
 this.newWallet = function(walletNumber, options) {
   currentCommand = "newWallet"
-  // // look through the options and fill in the data for the proto
-  // // buffer
-
-  // var protoData = {};
-  // if (options.isSecure) {
-  //   var password = Crypto.util.bytesToHex(Crypto.charenc.UTF8.stringToBytes("1"));
-  //   var bbPass = new ByteBuffer();
-  //   var parseLength = password.length
-  //   for (var i = 0; i < parseLength; i += 2) {
-  //     var value = password.substring(i, i + 2);
-  //   // 	console.log("value = " + value);
-  //     var prefix = "0x";
-  //     var together = prefix.concat(value);
-  //   // 	console.log("together = " + together);
-  //     var result = parseInt(together);
-  //   // 	console.log("result = " + result);
-  //     bbPass.writeUint8(result);
-  //   }
-  //   bbPass.flip();
-  //
-  //   protoData.password = bbPass
-  // } else {
-  //     protoData.password = null;
-  // }
-  // protoData.wallet_number = 49 // no idea why or if this is needed, copied from mobile code
-  // protoData.is_hidden = options.isHidden ? true : false;
-  // // get the name and put it in a byte buffer
-  // var name =  "Wallet " + walletNumber;
-  // if (options.name && 'string' === typeof name) {
-  //     name = options.name;
-  // }
-  // var nameToUseHexed = toHexPadded40bytes(name);
-  // console.log("namehexed: " + nameToUseHexed);
-  //
-  // var bbName = new ByteBuffer();
-  // var parseLength = nameToUseHexed.length
-  // 	console.log("utx length = " + parseLength);
-  // var i;
-  // for (i = 0; i < parseLength; i += 2) {
-  //   var value = nameToUseHexed.substring(i, i + 2);
-  //   	console.log("value = " + value);
-  //   var prefix = "0x";
-  //   var together = prefix.concat(value);
-  //   	console.log("together = " + together);
-  //   var result = parseInt(together);
-  //   	console.log("result = " + result)
-  //   bbName.writeUint8(result);
-  // }
-  // bbName.flip();
-  //
-  // protoData.wallet_name = bbName;
-  // // make a proto buffer for the data, generate a command and
-  // // send it off
-  // var msg = new protoDevice.NewWallet(protoData);
-  // // if isRestore === true in the option, use the restor command
-  // // instead (everything else is the same)
-  // var cmdPrefix = (options.isRestore === true) ?
-  //     deviceCommands.restoreWalletPrefix : deviceCommands.newWalletPrefix;
-  // // now make a full command using the proto buffer
-  // var cmd = this.makeCommand("0004",msg);
-  // console.warn("NEW WALLET "+ JSON.stringify(protoData))
-  //
-  // return this.write(cmd, 300000);
-  //
-  //
-
-
-
-
-
-
-
   // look through the options and fill in the data for the proto
   // buffer
   var protoData = {};

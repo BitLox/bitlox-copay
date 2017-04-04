@@ -39,7 +39,18 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
       return wallet.signTxProposal(txp, cb);
     });
   };
+  var _signWithBitlox = function(wallet, txp, cb) {
+    $log.info('Requesting Bitlox  to sign the transaction');
 
+    var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
+    bitloxWallet.signTx(xPubKeys, txp, wallet.credentials.account, function(err, result) {
+      if (err) return cb(err);
+
+      $log.debug('Bitlox response', result);
+      txp.signatures = result.signatures;
+      return wallet.signTxProposal(txp, cb);
+    });
+  };
   root.invalidateCache = function(wallet) {
     if (wallet.cachedStatus)
       wallet.cachedStatus.isValid = false;
@@ -564,7 +575,7 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     });
   };
 
- 
+
 
   root.getTxHistory = function(wallet, opts, cb) {
     opts = opts || {};
@@ -601,6 +612,9 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
   };
 
   root.createTx = function(wallet, txp, cb) {
+
+        console.warn(JSON.stringify(wallet))
+            console.warn(JSON.stringify(txp))
     if (lodash.isEmpty(txp) || lodash.isEmpty(wallet))
       return cb('MISSING_PARAMETER');
 
@@ -638,6 +652,8 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
           return _signWithLedger(wallet, txp, cb);
         case 'trezor':
           return _signWithTrezor(wallet, txp, cb);
+        case 'bitlox':
+          return _signWithBitlox(wallet, txp, cb);
         default:
           var msg = 'Unsupported External Key:' + wallet.getPrivKeyExternalSourceName();
           $log.error(msg);

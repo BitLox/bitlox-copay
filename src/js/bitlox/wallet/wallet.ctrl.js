@@ -4,9 +4,9 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope', '$state', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'hidweb', 'hidchrome', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'bleapi', 'platformInfo'];
+    WalletCtrl.$inject = ['$scope', '$state', '$timeout', 'MAX_WALLETS', 'Wallet', 'Toast', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'platformInfo'];
 
-    function WalletCtrl($scope, $state, $timeout, MAX_WALLETS, Wallet, Toast, hidweb, hidchrome, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, bleapi, platformInfo) {
+    function WalletCtrl($scope, $state, $timeout, MAX_WALLETS, Wallet, Toast, hidchrome, hidweb, bleapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, platformInfo) {
         var vm = this;
         var api = hidweb;
         if (platformInfo.isChromeApp) {
