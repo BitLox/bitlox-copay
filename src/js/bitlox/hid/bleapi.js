@@ -329,7 +329,7 @@ this.makeAddressHandler = function(chain, chainIndex) {
 ////////////////////////////
 // tx is from bitcoin/transaction.factory.js
 this.signTransaction = function(opts) {
-    var deferred = this.$q.defer();
+    var deferred = $q.defer();
     var addrHandlers = [];
     var inputData = [];
     async.eachSeries(opts.tx.inputs, function(input, next) {
@@ -342,9 +342,9 @@ this.signTransaction = function(opts) {
         // add to the handler array
         addrHandlers.push(handler);
         // get the hex of the full input transaction
-        hidapi.getTxHex(input.txid).then(function(hex) {
+        txUtil.getTxHex(input.txid).then(function(hex) {
             var thisInputData = '01';
-            thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
+            thisInputData += hexUtil.intToBigEndianString(input.vout, 4);
             thisInputData += hex;
             inputData.push(thisInputData);
             return next();
