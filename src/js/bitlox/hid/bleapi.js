@@ -3,11 +3,18 @@
 
 
 angular.module('hid')
-.service('bitloxBleApi',['$rootScope','$q', '$timeout', '$interval','hidCommands', 'hexUtil' ,function BleApi($rootScope,$q,$timeout,$interval, hidCommands, hexUtil) {
+.service('bitloxBleApi',
+['$rootScope',
+'$q',
+'$timeout',
+'$interval',
+'hidCommands',
+'hexUtil',
+'txUtil',
+'RECEIVE_CHAIN',
+'CHANGE_CHAIN',
+function BleApi($rootScope,$q,$timeout,$interval, hidCommands, hexUtil, txUtil, RECEIVE_CHAIN, CHANGE_CHAIN) {
 var BleApi = this
-
-
-
 var deviceCommands = hidCommands;
 
 // Handles to characteristics and descriptor for reading and
@@ -45,6 +52,9 @@ BleApi.TYPE_SIGNATURE_RETURN   =  'signature return';
 BleApi.TYPE_MESSAGE_SIGNATURE  =  'message signature';
 BleApi.TYPE_ENTROPY_RETURN  =  'entropy return';
 
+
+BleApi.RECEIVE_CHAIN = RECEIVE_CHAIN
+BleApi.CHANGE_CHAIN = CHANGE_CHAIN
 /*
  * The BLE plugin is loaded asynchronously so the ble
  * variable is set in the onDeviceReady handler.
@@ -296,6 +306,191 @@ this.getWalletCommand = function(type, walletNumber) {
     }
     return cmd + numHex;
 };
+this.makeAddressHandler = function(chain, chainIndex) {
+    var handler = {
+        address_handle_root: 0,
+        address_handle_chain: chain,
+        address_handle_index: chainIndex
+    };
+
+    if (chain === 'receive') {
+        handler.address_handle_chain = this.RECEIVE_CHAIN;
+    } else if (chain === 'change') {
+        handler.address_handle_chain = this.CHANGE_CHAIN;
+    } else {
+        throw new Error("Invalid chain on input: " + chain);
+    }
+
+    return handler;
+};
+
+////////////////////////////
+// Sign Transaction Prep
+////////////////////////////
+// tx is from bitcoin/transaction.factory.js
+this.signTransaction = function(tx) {
+    var deferred = this.$q.defer();
+    var addrHandlers = [];
+    var inputData = [];
+    async.eachSeries(tx.inputs, function(input, next) {
+        var inputPath = input.path.split('/')
+        input.chain = inputPath[1]
+        input.chainIndex = inputPath[2]
+        // make a handler
+        var handler = BleApi.makeAddressHandler(input.chain, input.chainIndex);
+        // add to the handler array
+        addrHandlers.push(handler);
+        // get the hex of the full input transaction
+        txUtil.getTxHex(input.tx_hash_big_endian).then(function(hex) {
+            var thisInputData = '01';
+            thisInputData += hexUtil.intToBigEndianString(input.tx_output_n, 4);
+            thisInputData += hex;
+            inputData.push(thisInputData);
+            return next();
+        }, next);
+    }, function(err) {
+        if (err) {
+            return deferred.reject(err);
+        }
+        var dataString = '00';
+        dataString += tx.unsignedHex;
+        // hash type
+        dataString += '01000000';
+        dataString = inputData.join('') + dataString;
+
+        var dataBuf = hexUtil.hexToByteBuffer(dataString);
+        dataBuf.flip();
+        var msg = new protoDevice.SignTransactionExtended({
+            address_handle_extended: addrHandlers,
+            transaction_data: dataBuf
+        });
+        var cmd = BleApi.makeCommand(deviceCommands.signTxPrefix, msg);
+
+        BleApi.write(cmd, 9000000).then(deferred.resolve, deferred.reject);
+    });
+    return deferred.promise;
+};
+
+this.signTransactionOld = function(unsignedtx, originatingTransactionArray, originatingTransactionArrayIndices, address_handle_chain, address_handle_index) {
+  var numberOfInputsinArray = originatingTransactionArray.length;
+  console.log("numberOfInputsinArray: " + numberOfInputsinArray);
+
+  var m;
+  for(m = 0; m < numberOfInputsinArray; m++) {
+    console.log("Originating Transaction "+m+": " + originatingTransactionArray[m]);
+  }
+
+  var address_handle_root = [];
+  for(m = 0; m < numberOfInputsinArray; m++) {
+    address_handle_root[m] = 0;
+  }
+
+  var address_handle_extended_data = []; // empty array
+  var k;
+  for (k=0;k<numberOfInputsinArray;k++)
+  {
+    address_handle_extended_data.push({
+    address_handle_root: address_handle_root[k],
+    address_handle_chain: address_handle_chain[k],
+    address_handle_index: address_handle_index[k]});
+  }
+  console.log(JSON.stringify(address_handle_extended_data));
+
+  // INPUTS
+  var inputHexTemp = "";
+  var j;
+  for (j=0; j<numberOfInputsinArray; j++){
+    //         wrapper:
+    var tempOriginating = "";
+    var is_ref01 = "01";
+    var output_num_select = valueFromInteger(originatingTransactionArrayIndices[j]);
+    //         previous transaction data:
+    output_num_select = Crypto.util.bytesToHex(output_num_select);
+    console.log("output_num_select: " + j +" : "+ output_num_select);
+    tempOriginating = is_ref01.concat(output_num_select);
+    tempOriginating = tempOriginating.concat(originatingTransactionArray[j]);
+    inputHexTemp = inputHexTemp.concat(tempOriginating);
+  }
+  // END INPUTS
+  var tempBuffer = ByteBuffer.allocate(1024);
+  // OUTPUTS
+  var is_ref00 = "00";
+  unsignedtx = is_ref00.concat(unsignedtx);
+  console.log("utx = " + unsignedtx);
+  var hashtype = "01000000";
+  unsignedtx = unsignedtx.concat(hashtype);
+
+  unsignedtx = inputHexTemp.concat(unsignedtx);
+
+  var sizeOfInput =  unsignedtx.length;
+  console.log("sizeOfInput = " + sizeOfInput);
+
+  var bb = ByteBuffer.allocate((sizeOfInput/2)+64);
+
+  var i;
+  for (i = 0; i < sizeOfInput; i += 2) {
+    var value = unsignedtx.substring(i, i + 2);
+    // 		console.log("value = " + value);
+    var prefix = "0x";
+    var together = prefix.concat(value);
+    // 		console.log("together = " + together);
+    var result = parseInt(together);
+    // 		console.log("result = " + result);
+
+    bb.writeUint8(result);
+  }
+  bb.flip();
+  // END OUTPUTS
+
+  for(m = 0; m < numberOfInputsinArray; m++) {
+    console.log("address_handle_root["+m+"]" + address_handle_root[m]);
+    console.log("address_handle_chain["+m+"]" + address_handle_chain[m]);
+    console.log("address_handle_index["+m+"]" + address_handle_index[m]);
+  }
+
+  var txContents = new protoDevice.SignTransactionExtended({
+  	"address_handle_extended": address_handle_extended_data
+  	,
+      "transaction_data": bb
+  });
+  // 		console.log("txContents: " + JSON.stringify(txContents));
+
+  tempBuffer = txContents.encode()
+  var tempTXstring = tempBuffer.toString('hex');
+  //         document.getElementById("temp_results").innerHTML = tempTXstring;
+  txSize = d2h((tempTXstring.length) / 2).toString('hex');
+  // 	console.log("txSize = " + txSize);
+  // 	console.log("txSize.length = " + txSize.length);
+  var j;
+  var txLengthOriginal = txSize.length;
+  for (j = 0; j < (8 - txLengthOriginal); j++) {
+    var prefix = "0";
+    txSize = prefix.concat(txSize);
+  }
+  // 	console.log("txSizePadded = " + txSize);
+  tempTXstring = txSize.concat(tempTXstring);
+
+  var command = "0065"; // extended
+  tempTXstring = command.concat(tempTXstring);
+
+  var magic = "2323"
+  tempTXstring = magic.concat(tempTXstring);
+
+  if(currentCommand == 'signAndSend')
+  {
+  	tempTXglobal = tempTXstring;
+  	setChangeAddress(usechange);
+  //         	BleApi.app.sliceAndWrite64(tempTXglobal);
+  } else {
+    document.getElementById("device_signed_transaction").value = tempTXstring;
+    $("#sign_transaction_with_device").attr('disabled',false);
+    console.log("READY");
+    BleApi.displayStatus('About to set change');
+    setChangeAddress(usechange);
+    BleApi.displayStatus('Ready to sign');
+  }
+}
+
 this.genTransaction = function() {
   if (balance > 0) {
     var receiver = $("#receiver_address").val();
@@ -2674,145 +2869,6 @@ console.log("address_handle_index " + address_handle_index);
 	}
 
 
-
-////////////////////////////
-// Sign Transaction Prep
-////////////////////////////
-
-    var prepForSigning = function(unsignedtx, originatingTransactionArray, originatingTransactionArrayIndices, address_handle_chain, address_handle_index) {
-        var ProtoBuf = dcodeIO.ProtoBuf;
-        var ByteBuffer = dcodeIO.ByteBuffer;
-        var builder = ProtoBuf.loadProtoFile("libs/bitlox/messages.proto"),
-            Device = builder.build();
-		var numberOfInputsinArray = originatingTransactionArray.length;
-        console.log("numberOfInputsinArray: " + numberOfInputsinArray);
-
-		var m;
-		for(m = 0; m < numberOfInputsinArray; m++)
-        {
-	        console.log("Originating Transaction "+m+": " + originatingTransactionArray[m]);
-		}
-
-
-
-		var address_handle_root = [];
-		for(m = 0; m < numberOfInputsinArray; m++)
-		{
-			address_handle_root[m] = 0;
-		}
-
-		var address_handle_extended_data = []; // empty array
-		var k;
-		for (k=0;k<numberOfInputsinArray;k++)
-		{
-			address_handle_extended_data.push({address_handle_root: address_handle_root[k], address_handle_chain: address_handle_chain[k], address_handle_index: address_handle_index[k]});
-		}
-		console.log(JSON.stringify(address_handle_extended_data));
-
-
-
-
-// INPUTS
-		var inputHexTemp = "";
-		var j;
-		for (j=0; j<numberOfInputsinArray; j++){
-//         wrapper:
-			var tempOriginating = "";
-			var is_ref01 = "01";
-			var output_num_select = valueFromInteger(originatingTransactionArrayIndices[j]);
-//         previous transaction data:
-			output_num_select = Crypto.util.bytesToHex(output_num_select);
-			console.log("output_num_select: " + j +" : "+ output_num_select);
-			tempOriginating = is_ref01.concat(output_num_select);
-			tempOriginating = tempOriginating.concat(originatingTransactionArray[j]);
-			inputHexTemp = inputHexTemp.concat(tempOriginating);
-		}
-// END INPUTS
-        var tempBuffer = ByteBuffer.allocate(1024);
-// OUTPUTS
-        var is_ref00 = "00";
-        unsignedtx = is_ref00.concat(unsignedtx);
-        console.log("utx = " + unsignedtx);
-        var hashtype = "01000000";
-        unsignedtx = unsignedtx.concat(hashtype);
-
-        unsignedtx = inputHexTemp.concat(unsignedtx);
-
-		var sizeOfInput =  unsignedtx.length;
-        console.log("sizeOfInput = " + sizeOfInput);
-
-        var bb = ByteBuffer.allocate((sizeOfInput/2)+64);
-
-        var i;
-        for (i = 0; i < sizeOfInput; i += 2) {
-            var value = unsignedtx.substring(i, i + 2);
-            // 		console.log("value = " + value);
-            var prefix = "0x";
-            var together = prefix.concat(value);
-            // 		console.log("together = " + together);
-            var result = parseInt(together);
-            // 		console.log("result = " + result);
-
-            bb.writeUint8(result);
-        }
-        bb.flip();
-// END OUTPUTS
-
-
-		for(m = 0; m < numberOfInputsinArray; m++)
-		{
-			console.log("address_handle_root["+m+"]" + address_handle_root[m]);
-			console.log("address_handle_chain["+m+"]" + address_handle_chain[m]);
-			console.log("address_handle_index["+m+"]" + address_handle_index[m]);
-      	}
-
-        var txContents = new protoDevice.SignTransactionExtended({
-        	"address_handle_extended": address_handle_extended_data
-        	,
-            "transaction_data": bb
-        });
-// 		console.log("txContents: " + JSON.stringify(txContents));
-
-        tempBuffer = txContents.encode();
-
-
-        var tempTXstring = tempBuffer.toString('hex');
-//         document.getElementById("temp_results").innerHTML = tempTXstring;
-        txSize = d2h((tempTXstring.length) / 2).toString('hex');
-        // 	console.log("txSize = " + txSize);
-        // 	console.log("txSize.length = " + txSize.length);
-        var j;
-        var txLengthOriginal = txSize.length;
-        for (j = 0; j < (8 - txLengthOriginal); j++) {
-            var prefix = "0";
-            txSize = prefix.concat(txSize);
-        }
-        // 	console.log("txSizePadded = " + txSize);
-        tempTXstring = txSize.concat(tempTXstring);
-
-        var command = "0065"; // extended
-        tempTXstring = command.concat(tempTXstring);
-
-        var magic = "2323"
-        tempTXstring = magic.concat(tempTXstring);
-
-        if(currentCommand == 'signAndSend')
-        {
-        	tempTXglobal = tempTXstring;
-        	setChangeAddress(usechange);
-//         	BleApi.app.sliceAndWrite64(tempTXglobal);
-        }else{
-			document.getElementById("device_signed_transaction").value = tempTXstring;
-			$("#sign_transaction_with_device").attr('disabled',false);
-			console.log("READY");
-			BleApi.displayStatus('About to set change');
-        	setChangeAddress(usechange);
-			BleApi.displayStatus('Ready to sign');
-
-		}
-
-
-    }
 
 
 ////////////////////////////

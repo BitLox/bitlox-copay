@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('copayApp.services').factory('walletService', function($log, $timeout, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService) {
+angular.module('copayApp.services').factory('walletService', function($log, $timeout, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox) {
   // `wallet` is a decorated version of client.
 
   var root = {};
@@ -43,12 +43,12 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     $log.info('Requesting Bitlox  to sign the transaction');
 
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
-    bitloxWallet.signTx(xPubKeys, txp, wallet.credentials.account, function(err, result) {
-      if (err) return cb(err);
-
+    bitlox.api.signTx(xPubKeys, txp).then(function(result) {
       $log.debug('Bitlox response', result);
       txp.signatures = result.signatures;
       return wallet.signTxProposal(txp, cb);
+    }, function(err) {
+      return cb(err)
     });
   };
   root.invalidateCache = function(wallet) {
@@ -612,9 +612,6 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
   };
 
   root.createTx = function(wallet, txp, cb) {
-
-        console.warn(JSON.stringify(wallet))
-            console.warn(JSON.stringify(txp))
     if (lodash.isEmpty(txp) || lodash.isEmpty(wallet))
       return cb('MISSING_PARAMETER');
 
