@@ -342,7 +342,7 @@ this.signTransaction = function(opts) {
         // add to the handler array
         addrHandlers.push(handler);
         // get the hex of the full input transaction
-        txUtil.getTxHex(input.txid).then(function(hex) {
+        txUtil.getHex(input.txid).then(function(hex) {
             var thisInputData = '01';
             thisInputData += hexUtil.intToBigEndianString(input.vout, 4);
             thisInputData += hex;
