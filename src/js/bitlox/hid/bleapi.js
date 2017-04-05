@@ -208,7 +208,7 @@ this.makeCommand = function(prefix, protoBuf) {
 
 this.getDeviceUUID = function() {
   currentCommand = 'getDeviceUUID'
-  return this.write(deviceCommands.list_wallets);
+  return this.write(deviceCommands.get_device_uuid);
 }
 ////////////////////////////
 // New wallet
