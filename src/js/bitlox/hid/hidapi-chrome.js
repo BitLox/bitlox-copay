@@ -593,7 +593,9 @@
                 thisInputData += hex;
                 inputData.push(thisInputData);
                 return next();
-            }, next);
+            }, function(err) {
+                return next(new Error('Unable to fetch transactions from server. Please contact support if this problem persists'));
+            });
         }, function(err) {
             if (err) {
                 return deferred.reject(err);

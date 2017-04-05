@@ -22,9 +22,11 @@
 
         function getHex(bigEndianTxid) {
         	console.debug("raw source txid ", bigEndianTxid);
-            return $http.get(baseUrl + '/rawtx/' + bigEndianTxid ).then(function(res) {
+            return $http.get(baseUrl + '/rawtx/' + bigEndianTxid ).success(function(res) {
             	console.debug("raw source tx ", res.data.rawtx);
                 return res.data.rawtx;
+            }).error(function(err) {
+                return err
             });
         }
 

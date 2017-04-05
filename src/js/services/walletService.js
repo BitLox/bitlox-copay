@@ -41,28 +41,27 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
   };
   var _signWithBitlox = function(wallet, txp, cb) {
     $log.info('Requesting Bitlox to sign the transaction');
-
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
     var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
     $log.debug('xPubKeys', xPubKeys)
     bitlox.api.getDeviceUUID().then(function(results) {
-      $log.debug('device uuid', results)
-      $log.debug('wallet UUID', wallet.walletUUID)
-
-      var bitloxInfo = wallet.externalSource.split('/')
-      if(bitloxInfo[1] !== results.device_uuid.toString('hex')) {
+      var externalSource = wallet.getPrivKeyExternalSourceName()
+      var bitloxInfo = externalSource.split('/')
+      if(bitloxInfo[1] !== results.payload.device_uuid.toString('hex')) {
         return cb(new Error('The sending wallet is not connected to this BitLox device'))
       }
+      $log.debug(bitloxInfo)
       bitlox.wallet.list()
       .then(function(wallets) {
         for(var i=0; i<wallets.length;i++) {
           thisWallet = wallets[i]
+
           if(thisWallet._uuid.toString("hex") === bitloxInfo[2]) {
-            thisWallet.open()
+            return thisWallet.open()
             .then(function() {
                 $log.debug("WALLET LOADED", thisWallet.xpub)
 
-                if(thisWallet.xpub !== wallet.extendedPublicKey) {
+                if(thisWallet.xpub !== xPubKeys[0]) {
                   $log.debug('pubkeys do not match')
                   return cb(new Error('pubkeys do not match'))
                 }
@@ -72,14 +71,13 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
                   $log.debug('Bitlox response', result);
                   txp.signatures = result.payload.signedScripts;
                   return wallet.signTxProposal(txp, cb);
+                }).catch(function(err) {
+                  $log.debug("TX sign error", err)
+                  return cb(err)
                 });
             }, function(err) {
               $log.debug('load wallet error', err)
             })
-            .finally(function() {
-                $log.debug("done loading wallet "+wallet.number, wallet._uuid);
-            });
-
           }
         }
 
