@@ -260,7 +260,7 @@ this.newWallet = function(walletNumber, options) {
       deviceCommands.restoreWalletPrefix : deviceCommands.newWalletPrefix;
   // now make a full command using the proto buffer
   var cmd = this.makeCommand(cmdPrefix, newWalletMessage);
-  return this.write(cmd,300000);
+  return this.write(cmd,900000);
 };
 
 /**

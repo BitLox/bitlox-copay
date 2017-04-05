@@ -28,44 +28,49 @@
 
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
+          api.getDeviceUUID().then(function(result) {
+            var opts = {};
 
-          var opts = {};
-          opts.externalSource = 'bitlox'
-          opts.extendedPublicKey = wallet.xpub
-          opts.derivationPath = derivationPathHelper.default
-          opts.derivationStrategy = 'BIP44'
-          opts.hasPassphrase = false;
-          opts.name = wallet.name;
-          opts.account = 0
+            opts.externalSource = 'bitlox/'+result.payload.device_uuid.toString('hex')+'/'+wallet._uuid.toString("hex")
+            opts.isPrivKeyExternal = true
+            opts.extendedPublicKey = wallet.xpub
+            opts.derivationPath = derivationPathHelper.default
+            opts.derivationStrategy = 'BIP44'
+            opts.hasPassphrase = false;
+            opts.name = wallet.name;
+            opts.account = 0
 
-          var b = bwcService.getBitcore();
-          var x = b.HDPublicKey(wallet.xpub);
-          opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
-          opts.account = 0;
-          opts.networkName = 'livenet';
-          opts.m = 1;
-          opts.n = 1;
-          opts.singleAddress = false;
+            var b = bwcService.getBitcore();
+            var x = b.HDPublicKey(wallet.xpub);
+            opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
+            opts.account = 0;
+            opts.networkName = 'livenet';
+            opts.m = 1;
+            opts.n = 1;
+            opts.singleAddress = false;
 
-          opts.network = true
-          opts.bwsurl = 'https://bws.bitpay.com/bws/api'
-          ongoingProcess.set('importingWallet', true);
-          // console.warn("START IMPORTING")
-          // console.warn(JSON.stringify(opts))
-          profileService.createWallet(opts, function(err, walletId) {
-            ongoingProcess.set('importingWallet', false);
-            // console.warn("DONE IMPORTING")
-            if (err) {
-              console.error(err)
-              popupService.showAlert(gettextCatalog.getString('Error'), err);
-              return;
-            }
+            opts.network = true
+            opts.bwsurl = 'https://bws.bitpay.com/bws/api'
+            ongoingProcess.set('importingWallet', true);
+            // console.warn("START IMPORTING")
+            profileService.createWallet(opts, function(err, walletId) {
+              ongoingProcess.set('importingWallet', false);
+              // console.warn("DONE IMPORTING")
+              if (err) {
+                console.error(err)
+                popupService.showAlert(gettextCatalog.getString('Error'), err);
+                return;
+              }
 
 
-            walletService.updateRemotePreferences(walletId);
-            $state.goBack();
+              walletService.updateRemotePreferences(walletId);
+              $ionicHistory.goBack(2);
 
+            });
+          }).catch(function(e) {
+            $log.debug("error getting device UUID", e)
           });
+
         };
 
         if(chrome && chrome.hid) {

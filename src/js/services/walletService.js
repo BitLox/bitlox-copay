@@ -47,24 +47,25 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     $log.debug('xPubKeys', xPubKeys)
     bitlox.api.getDeviceUUID().then(function(results) {
       $log.debug('device uuid', results)
+      $log.debug('wallet UUID', wallet.walletUUID)
+
+      var bitloxInfo = wallet.externalSource.split('/')
+      if(bitloxInfo[1] !== results.device_uuid.toString('hex')) {
+        return cb(new Error('The sending wallet is not connected to this BitLox device'))
+      }
       bitlox.wallet.list()
       .then(function(wallets) {
-        $log.debug('wallet list', wallets)
         for(var i=0; i<wallets.length;i++) {
-          if(wallets[i]._uuid === wallet._uuid) {
-
-
-            wallet.open()
+          thisWallet = wallets[i]
+          if(thisWallet._uuid.toString("hex") === bitloxInfo[2]) {
+            thisWallet.open()
             .then(function() {
-                vm.openWallet = wallet;
-                $log.debug("WALLET LOADED", wallet.xpub)
+                $log.debug("WALLET LOADED", thisWallet.xpub)
 
-
-                if(wallet.xpub !== xPubKeys[0]) {
+                if(thisWallet.xpub !== wallet.extendedPublicKey) {
                   $log.debug('pubkeys do not match')
                   return cb(new Error('pubkeys do not match'))
                 }
-
 
                 bitlox.api.signTransaction(opts)
                 .then(function(result) {
@@ -686,17 +687,20 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
       return cb('MISSING_PARAMETER');
 
     if (wallet.isPrivKeyExternal()) {
-      switch (wallet.getPrivKeyExternalSourceName()) {
-        case 'ledger':
-          return _signWithLedger(wallet, txp, cb);
-        case 'trezor':
-          return _signWithTrezor(wallet, txp, cb);
-        case 'bitlox':
-          return _signWithBitlox(wallet, txp, cb);
-        default:
-          var msg = 'Unsupported External Key:' + wallet.getPrivKeyExternalSourceName();
-          $log.error(msg);
-          return cb(msg);
+      var externalSource = wallet.getPrivKeyExternalSourceName()
+      if(externalSource.indexOf('bitlox') === 0) {
+        return _signWithBitlox(wallet, txp, cb);
+      } else {
+        switch (externalSource) {
+          case 'ledger':
+            return _signWithLedger(wallet, txp, cb);
+          case 'trezor':
+            return _signWithTrezor(wallet, txp, cb);
+          default:
+            var msg = 'Unsupported External Key:' + wallet.getPrivKeyExternalSourceName();
+            $log.error(msg);
+            return cb(msg);
+        }
       }
     } else {
 
