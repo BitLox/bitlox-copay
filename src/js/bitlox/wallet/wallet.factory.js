@@ -2,7 +2,7 @@
     'use strict';
 
     angular.module('app.wallet')
-        .factory('Wallet', WalletFactory);
+        .factory('bitloxWallet', WalletFactory);
 
     WalletFactory.$inject = [
         '$q', '$timeout',

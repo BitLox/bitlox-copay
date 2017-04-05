@@ -498,6 +498,9 @@
     HidAPI.prototype.ping = function() {
         return this._doCommand(this.commands.ping, this.TYPE_PONG);
     };
+    HidAPI.prototype.getDeviceUUID = function() {
+        return this._doCommand(this.commands.get_device_uuid, this.TYPE_UUID);
+    };    
 
     HidAPI.prototype.listWallets = function() {
         return this._doCommand(this.commands.list_wallets, this.TYPE_WALLET_LIST);

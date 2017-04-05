@@ -205,6 +205,11 @@ this.makeCommand = function(prefix, protoBuf) {
     }
     return prefix + txSizeHex + messageHex;
 };
+
+this.getDeviceUUID = function() {
+  currentCommand = 'getDeviceUUID'
+  return this.write(deviceCommands.list_wallets);
+}
 ////////////////////////////
 // New wallet
 //

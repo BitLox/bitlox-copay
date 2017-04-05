@@ -44,11 +44,54 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
 
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
     var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
-    bitlox.api.signTransaction(opts).then(function(result) {
-      $log.debug('Bitlox response', result);
-      txp.signatures = result.signatures;
-      return wallet.signTxProposal(txp, cb);
-    });
+    $log.debug('xPubKeys', xPubKeys)
+    bitlox.api.getDeviceUUID().then(function(results) {
+      $log.debug('device uuid', results)
+      bitlox.wallet.list()
+      .then(function(wallets) {
+        $log.debug('wallet list', wallets)
+        for(var i=0; i<wallets.length;i++) {
+          if(wallets[i]._uuid === wallet._uuid) {
+
+
+            wallet.open()
+            .then(function() {
+                vm.openWallet = wallet;
+                $log.debug("WALLET LOADED", wallet.xpub)
+
+
+                if(wallet.xpub !== xPubKeys[0]) {
+                  $log.debug('pubkeys do not match')
+                  return cb(new Error('pubkeys do not match'))
+                }
+
+
+                bitlox.api.signTransaction(opts)
+                .then(function(result) {
+                  $log.debug('Bitlox response', result);
+                  txp.signatures = result.payload.signedScripts;
+                  return wallet.signTxProposal(txp, cb);
+                });
+            }, function(err) {
+              $log.debug('load wallet error', err)
+            })
+            .finally(function() {
+                $log.debug("done loading wallet "+wallet.number, wallet._uuid);
+            });
+
+          }
+        }
+
+        return cb(new Error('the wallet no longer exists on the bitlox'))
+      }).catch(function(e) {
+        $log.debug('Bitlox wallet list error', e)
+        return cb(e)
+      })
+    }).catch(function(e) {
+      $log.debug('cannot get device uuid', e)
+      return cb(e)
+    })
+
   };
   root.invalidateCache = function(wallet) {
     if (wallet.cachedStatus)
