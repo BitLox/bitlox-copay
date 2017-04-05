@@ -347,13 +347,17 @@ this.signTransaction = function(opts) {
         // add to the handler array
         addrHandlers.push(handler);
         // get the hex of the full input transaction
-        txUtil.getHex(input.txid).then(function(hex) {
+        txUtil.getHex(input.txid).then(function(res) {
+          var hex = res.data.rawtx;
             var thisInputData = '01';
-            thisInputData += hexUtil.intToBigEndianString(input.vout, 4);
+            var vout = hexUtil.intToBigEndianString(input.vout, 4);
+            thisInputData += vout
             thisInputData += hex;
             inputData.push(thisInputData);
             return next();
-        }, next);
+        }, function(err) {
+            return next(new Error('Unable to fetch transactions from server. Please contact support if this problem persists'));
+        });
     }, function(err) {
         if (err) {
             return deferred.reject(err);
@@ -1021,19 +1025,19 @@ this.write = function(data, timer, noPromise) {
   if(platform == "android")
   {
     chunkSize = 40;  // android
-    console.log('ChunkSize set to: ' + chunkSize);
+    // console.log('ChunkSize set to: ' + chunkSize);
   }
   else
   {
     chunkSize = 128;
-    console.log('ChunkSize set to: ' + chunkSize);
+    // console.log('ChunkSize set to: ' + chunkSize);
   }
 
   var thelength = data.length;
   var iterations = Math.floor(thelength/chunkSize);
-  console.log('iterations : ' + iterations);
+  // console.log('iterations : ' + iterations);
   var remainder  = thelength%chunkSize;
-  console.log('remainder : ' + remainder);
+  // console.log('remainder : ' + remainder);
   var k = 0;
   var m = 0;
   var transData = [];
@@ -1129,7 +1133,7 @@ this.sendToProcess = function(rawData) {
       // We match on 2323 and then toggle the dataReady boolean to get ready for any subsequent frames
 	if (rawData.match(/2323/) || dataReady == true)
 	{
-		console.log('or match ');
+		// console.log('or match ');
 		incomingData = incomingData.concat(rawData);
 		// console.log('incomingData ' + incomingData);
 
@@ -1174,7 +1178,7 @@ this.finalPrepProcess = function(dataToProcess) {
       var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
       // document.getElementById("payload_HEX").innerHTML = payload;
       // document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
-      console.log('ready to process: ' + dataToProcess);
+      // console.log('ready to process: ' + dataToProcess);
       this.processResults(command, payloadSize2, payload);
     }
 }

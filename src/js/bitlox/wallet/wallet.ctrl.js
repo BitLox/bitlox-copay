@@ -30,7 +30,7 @@
         var _importExtendedPublicKey = function(wallet) {
           api.getDeviceUUID().then(function(result) {
             var opts = {};
-
+            opts.singleAddress = false
             opts.externalSource = 'bitlox/'+result.payload.device_uuid.toString('hex')+'/'+wallet._uuid.toString("hex")
             opts.isPrivKeyExternal = true
             opts.extendedPublicKey = wallet.xpub
@@ -43,7 +43,7 @@
             var b = bwcService.getBitcore();
             var x = b.HDPublicKey(wallet.xpub);
             opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
-            opts.account = 0;
+            opts.account = wallet.number;
             opts.networkName = 'livenet';
             opts.m = 1;
             opts.n = 1;

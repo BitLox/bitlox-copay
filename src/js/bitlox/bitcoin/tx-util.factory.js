@@ -21,12 +21,15 @@
         };
 
         function getHex(bigEndianTxid) {
-        	console.debug("raw source txid ", bigEndianTxid);
-            return $http.get(baseUrl + '/rawtx/' + bigEndianTxid ).success(function(res) {
-            	console.debug("raw source tx ", res.data.rawtx);
-                return res.data.rawtx;
+        	console.debug("raw source txid " + bigEndianTxid);
+            var url = baseUrl + '/rawtx/' + bigEndianTxid 
+            console.log(url)
+            return $http.get(url).success(function(res) {
+                if(res.data && res.data.rawtx) {
+                    console.warn("raw tx " + res.data.rawtx)
+                }
             }).error(function(err) {
-                return err
+                console.error(err)
             });
         }
 

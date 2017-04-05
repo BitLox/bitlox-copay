@@ -587,7 +587,8 @@
             // add to the handler array
             addrHandlers.push(handler);
             // get the hex of the full input transaction
-            hidapi.getTxHex(input.txid).then(function(hex) {
+            hidapi.getTxHex(input.txid).then(function(res) {
+                var hex = res.data.rawtx;
                 var thisInputData = '01';
                 thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
                 thisInputData += hex;

@@ -69,8 +69,13 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
                 bitlox.api.signTransaction(opts)
                 .then(function(result) {
                   $log.debug('Bitlox response', result);
-                  txp.signatures = result.payload.signedScripts;
-                  return wallet.signTxProposal(txp, cb);
+                  if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
+                    txp.signatures = result.payload.signedScripts;
+                    return wallet.signTxProposal(txp, cb);
+                  } else {
+                    $log.debug('TX parse error', result)
+                    return cb(new Error("TX parse error"))
+                  }
                 }).catch(function(err) {
                   $log.debug("TX sign error", err)
                   return cb(err)
