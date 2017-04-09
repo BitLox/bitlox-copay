@@ -66,20 +66,25 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
                   return cb(new Error('pubkeys do not match'))
                 }
 
-                bitlox.api.signTransaction(opts)
-                .then(function(result) {
-                  $log.debug('Bitlox response', result);
-                  if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
-                    txp.signatures = result.payload.signedScripts;
-                    return wallet.signTxProposal(txp, cb);
-                  } else {
-                    $log.debug('TX parse error', result)
-                    return cb(new Error("TX parse error"))
-                  }
-                }).catch(function(err) {
-                  $log.debug("TX sign error", err)
+                return bitlox.api.setChangeAddress(1).then(function() {
+                  return bitlox.api.signTransaction(opts)
+                  .then(function(result) {
+                    $log.debug('Bitlox response', result);
+                    if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
+                      txp.signatures = result.payload.signedScripts;
+                      return wallet.signTxProposal(txp, cb);
+                    } else {
+                      $log.debug('TX parse error', result)
+                      return cb(new Error("TX parse error"))
+                    }
+                  }).catch(function(err) {
+                    $log.debug("TX sign error", err)
+                    return cb(err)
+                  })
+                }, function(err) {
+                  $log.debug("setChangeAddress error", err)
                   return cb(err)
-                });
+                })
             }, function(err) {
               $log.debug('load wallet error', err)
             })

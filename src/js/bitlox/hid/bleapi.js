@@ -226,7 +226,14 @@ this.getDeviceUUID = function() {
 // 	optional bool is_hidden = 4 ;//[default = false];
 // }
 ////////////////////////////
-
+this.setChangeAddress = function(changeIndex) {
+  currentCommand = 'setChangeAddress'
+  var msg = new Device2.SetChangeAddressIndex({
+    "address_handle_index": changeIndex
+  });  
+  var cmd = this.makeCommand(deviceCommands.setChangePrefix, msg);
+  return this.write(cmd);  
+}
 this.newWallet = function(walletNumber, options) {
   currentCommand = "newWallet"
   // look through the options and fill in the data for the proto

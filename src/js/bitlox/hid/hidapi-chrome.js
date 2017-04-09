@@ -603,6 +603,7 @@
             }
             var dataString = '00';
             dataString += opts.rawTx
+            console.warn("raw="+opts.rawTx)
             // hash type
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
