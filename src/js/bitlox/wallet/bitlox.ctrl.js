@@ -67,23 +67,24 @@
       console.log('connecting to '+address)
       api.connect(address).then(function() {
 
-        setTimeout(function() {
+        // setTimeout(function() {
           if(api.getStatus() === api.STATUS_CONNECTED) {
             $log.debug("connection successful")
             if(goBack) {
               $rootScope.$broadcast('bitloxConnectSuccess')
-              $ionicLoading.hide()
             }
+            $ionicLoading.hide()
           } else {
             $log.debug("connection failed")
             $rootScope.$broadcast('bitloxConnectError')
             $ionicLoading.hide()
           }
-        },2000)
+        // },4000)
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
         $ionicLoading.hide()
-      })    }
+      })    
+    }
     if($scope.bitlox.isMobile) {
       api.initialize();
     }

@@ -804,7 +804,6 @@ this.getServices = function() {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-      pausecomp(1000)
 			BleApi.startReading();
 		}
 		else
@@ -871,7 +870,6 @@ this.startReading = function() {
       $rootScope.$applyAsync();
     });
   BleApi.displayStatus('Ready');
-  pausecomp(1000)
   status = BleApi.STATUS_CONNECTED
   return $rootScope.$applyAsync()
 }
@@ -960,12 +958,14 @@ this.connect = function(address)	{
 			if (device.state == 2) // Connected
 			{
 				BleApi.displayStatus('Connected');
-				if(platform == "android")
+				if(platform === "android")
 				{
+          console.warn("And Roy Dis we todd did")
 					pausecomp(1500);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
 				BleApi.getServices();
+        pausecomp(2000)
         return def.resolve()
 			}
 			else
