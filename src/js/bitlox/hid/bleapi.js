@@ -346,8 +346,8 @@ this.signTransaction = function(opts) {
     var inputData = [];
     async.eachSeries(opts.tx.inputs, function(input, next) {
         var inputPath = input.path.split('/')
-        input.chain = parseInt(inputPath[1])
-        input.chainIndex = parseInt(inputPath[2])
+        input.chain = parseInt(inputPath[1],10)
+        input.chainIndex = parseInt(inputPath[2],10)
 
         // make a handler
         var handler = BleApi.makeAddressHandler(input.chain, input.chainIndex);
@@ -369,6 +369,7 @@ this.signTransaction = function(opts) {
         if (err) {
             return deferred.reject(err);
         }
+        console.warn("raw="+opts.rawTx)
         var dataString = '00';
         dataString += opts.rawTx
         // hash type
