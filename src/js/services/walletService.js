@@ -82,6 +82,10 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
       }
   }
   function _bitloxSend(wallet,txp,cb) {
+    if(bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
+      return cb(new Error("Unable to connect to BitLox"))
+    }
+
     $ionicLoading.show({
       template: 'Check Your Bitlox...'
     });
@@ -90,9 +94,6 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
     var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
     if(!xPubKeys) {
       return cb(new Error("Unable to connect to BitLox, pub key error"))
-    }
-    if(platformInfo.isMobile && bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
-      return cb(new Error("Unable to connect to BitLox, Bluetooth error"))
     }
     $log.debug('xPubKeys', xPubKeys)
 
@@ -117,8 +118,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                   $log.debug('pubkeys do not match')
                   return cb(new Error('pubkeys do not match'))
                 }
-
-                return bitlox.api.setChangeAddress(1).then(function() {
+                var changeIndex = txp.changeAddress.path.split('/')[2]
+                return bitlox.api.setChangeAddress(changeIndex).then(function() {
                   $log.debug('Done setting change address')
                   return bitlox.api.signTransaction(opts)
                   .then(function(result) {
