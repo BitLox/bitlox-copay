@@ -805,6 +805,7 @@ this.getServices = function(def) {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
+      pausecomp(1000)
 			BleApi.startReading(def);
 		}
 		else
@@ -1007,7 +1008,7 @@ this.write = function(data, timer, noPromise) {
   var chunkSize;
   if(platform == "android")
   {
-    chunkSize = 40;  // android
+    chunkSize = 128;  // android
     // console.log('ChunkSize set to: ' + chunkSize);
   }
   else
