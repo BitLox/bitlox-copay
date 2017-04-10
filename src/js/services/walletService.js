@@ -58,24 +58,21 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
           newScope.closeModal = function() {
             newScope.modal.remove();
           };
-          // // Cleanup the modal when we're done with it!
-          // newScope.$on('$destroy', function() {
-          //   newScope.modal.remove();
-          // });
+          // Cleanup the modal when we're done with it!
+          newScope.$on('$destroy', function() {
+            newScope.modal.remove();
+          });
           // Execute action on hide modal
           newScope.$on('modal.hidden', function() {
             // Execute action
-            console.warn('modal got hid')
           });
 
           newScope.$on('modal.removed', function() {
             // Execute action
-            console.warn('modal got rmd')
-
           });
           newScope.$on('bitloxConnected', function() {
             // Execute action
-            newScope.modal.hide();
+            newScope.modal.remove();
             _bitloxSend(wallet,txp,cb)
           });
       } else {
