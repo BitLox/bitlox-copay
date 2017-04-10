@@ -41,11 +41,10 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
   };
 
   var _signWithBitlox = function(wallet, txp, cb) {
-    $log.debug('wallet', Object.keys(wallet))
-    $log.debug('TX', Object.keys(txp))
-    console.log(wallet,txp)
-      if(platformInfo.isMobile && bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
+      if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE) {
         var newScope = $rootScope.$new();
+        var successListener;
+        var errorListener
         $ionicModal.fromTemplateUrl('views/bitlox/tab-attach-bitlox-modal.html', {
             scope: newScope,
             animation: 'slide-in-up'
@@ -69,18 +68,32 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
           newScope.$on('modal.removed', function() {
             // Execute action
-          });
-          newScope.$on('bitloxConnected', function() {
-            // Execute action
-            newScope.modal.remove();
+            successListener()
+            errorListener()
             _bitloxSend(wallet,txp,cb)
           });
+          successListener = newScope.$on('bitloxConnectSuccess', function() {
+            // Execute action
+            newScope.modal.remove()
+          });
+          errorListener = newScope.$on('bitloxConnectError', function() {
+            // Execute action
+          });          
       } else {
         _bitloxSend(wallet,txp,cb)
       }
   }
   function _bitloxSend(wallet,txp,cb) {
-    if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
+    var status = bitlox.api.getStatus()
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    $log.debug("device status", status)
+    if(platformInfo.isMobile && status !== bitlox.api.STATUS_IDLE && status !== bitlox.api.STATUS_CONNECTED) {
+
       return cb(new Error("Unable to connect to BitLox"))
     }
 

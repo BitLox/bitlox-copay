@@ -750,7 +750,7 @@ this.initProtoBuf = function(cb) {
 this.displayStatus = function(status) {
 	console.log('Status: '+status);
 }
-this.getServices = function(def) {
+this.getServices = function() {
   var bleapi = this
 
 	BleApi.displayStatus('Reading services...');
@@ -804,7 +804,7 @@ this.getServices = function(def) {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-			BleApi.startReading(def);
+			BleApi.startReading();
 		}
 		else
 		{
@@ -823,7 +823,7 @@ this.getServices = function(def) {
 * 	be processed. The passed frame may not contain the whole message, which will be completed
 * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
 */
-this.startReading = function(def) {
+this.startReading = function() {
   var bleapi = this
 	BleApi.displayStatus('Enabling notifications...');
 
@@ -871,8 +871,7 @@ this.startReading = function(def) {
     });
   BleApi.displayStatus('Ready');
   status = BleApi.STATUS_CONNECTED
-  $rootScope.$applyAsync()
-  return def.resolve()
+  return $rootScope.$applyAsync()
 }
 
 // 	Actual write function
@@ -946,11 +945,6 @@ this.connect = function(address)	{
   evothings.ble.stopScan();
   var def = $q.defer()
   if(platform === 'android') pausecomp(1000);
-  console.log(status)
-  console.log(status)
-  console.log(status)
-  console.log(status)
-  console.log(status)
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
   }
@@ -969,7 +963,8 @@ this.connect = function(address)	{
 					pausecomp(1000);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
-				BleApi.getServices(def);
+				BleApi.getServices();
+        return def.resolve()
 			}
 			else
 			{
