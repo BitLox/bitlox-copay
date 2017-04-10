@@ -47,7 +47,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
         var errorListener
         $ionicModal.fromTemplateUrl('views/bitlox/tab-attach-bitlox-modal.html', {
             scope: newScope,
-            animation: 'slide-in-up'
+            animation: 'slide-in-up',
+            hardwareBackButtonClose: false
           }).then(function(modal) {
             newScope.modal = modal;
             newScope.modal.show();
