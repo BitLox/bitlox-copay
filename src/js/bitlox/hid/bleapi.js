@@ -229,7 +229,7 @@ this.getDeviceUUID = function() {
 this.setChangeAddress = function(changeIndex) {
   currentCommand = 'setChangeAddress'
   var msg = new protoDevice.SetChangeAddressIndex({
-    "address_handle_index": changeIndex
+    "address_handle_index": parseInt(changeIndex,10)
   });
   var cmd = this.makeCommand(deviceCommands.setChangePrefix, msg);
   return this.write(cmd);
@@ -750,7 +750,7 @@ this.initProtoBuf = function(cb) {
 this.displayStatus = function(status) {
 	console.log('Status: '+status);
 }
-this.getServices = function() {
+this.getServices = function(def) {
   var bleapi = this
 
 	BleApi.displayStatus('Reading services...');
@@ -804,7 +804,7 @@ this.getServices = function() {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-			BleApi.startReading();
+			BleApi.startReading(def);
 		}
 		else
 		{
@@ -823,7 +823,7 @@ this.getServices = function() {
 * 	be processed. The passed frame may not contain the whole message, which will be completed
 * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
 */
-this.startReading = function() {
+this.startReading = function(def) {
   var bleapi = this
 	BleApi.displayStatus('Enabling notifications...');
 
@@ -871,7 +871,9 @@ this.startReading = function() {
     });
   BleApi.displayStatus('Ready');
   status = BleApi.STATUS_CONNECTED
-  return $rootScope.$applyAsync()
+  $rootScope.$applyAsync()
+  def.resolve()
+
 }
 
 // 	Actual write function
@@ -958,15 +960,11 @@ this.connect = function(address)	{
 			if (device.state == 2) // Connected
 			{
 				BleApi.displayStatus('Connected');
-				if(platform === "android")
-				{
-          console.warn("And Roy Dis we todd did")
+				if(platform === "android") {
 					pausecomp(1500);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
-				BleApi.getServices();
-        pausecomp(2000)
-        return def.resolve()
+				BleApi.getServices(def);
 			}
 			else
 			{
@@ -1263,6 +1261,11 @@ this.processResults = function(command, length, payload) {
 					$('#myTab a[href="#bip32"]').tab('show');
 					currentCommand = '';
 				break;
+        case "setChangeAddress":
+
+          this.sendData({}, BleApi.TYPE_SUCCESS);
+          currentCommand = '';
+        break;
 				case "loadWallet":
 					// window.plugins.toast.show('Wallet loaded', 'long', 'center', function(a){console.log('toast success: ' + a)}, function(b){alert('toast error: ' + b)});
 					// document.getElementById("transactionDisplayList").innerHTML = '';

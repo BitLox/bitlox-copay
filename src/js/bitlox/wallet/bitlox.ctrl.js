@@ -67,7 +67,7 @@
       console.log('connecting to '+address)
       api.connect(address).then(function() {
 
-        // setTimeout(function() {
+        setTimeout(function() {
           if(api.getStatus() === api.STATUS_CONNECTED) {
             $log.debug("connection successful")
             if(goBack) {
@@ -79,7 +79,7 @@
             $rootScope.$broadcast('bitloxConnectError')
             $ionicLoading.hide()
           }
-        // },4000)
+        },5000)
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
         $ionicLoading.hide()
