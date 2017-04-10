@@ -509,176 +509,145 @@ this.signTransactionOld = function(unsignedtx, originatingTransactionArray, orig
   }
 }
 
-this.genTransaction = function() {
-  if (balance > 0) {
-    var receiver = $("#receiver_address").val();
-    var amountPrep = $("#receiver_monies").val();
-    //             alert("amountPrep " + amountPrep);
-    amountPrep = amountPrep.replace(/[^\d\.]/g, "" );
-    //             alert("amountPrepregex " + amountPrep);
-    var zeroText = "0";
-    amountPrep = zeroText.concat(amountPrep);
-    //             alert("amountPrepconcat " + amountPrep);
-    var amount = Math.ceil(parseFloat(amountPrep) * 100000000);
-    //             alert("amount " + amount);
+this.genTransaction = function(txp) {
 
-    //             var amount = Math.ceil(parseFloat($("#receiver_monies").val()) * 100000000);
-    var fee = Math.ceil(parseFloat($("#fee_monies").val()) * 100000000);
-    if (!(amount > 0)) {
-        console.log("Nothing to do");
-    }
-    if (!(fee >= 0)) {
-        fee = 0;
-    }
-    var target = amount + fee;
-    if (target > balance) {
-        alert("Not enough funds available");
-        return
-    } else {
-      // prepare inputs
-      var fullInputTransactionHash = [];
-      var fullInputTXindex = [];
-      var address_handle_chain = [];
-      var address_handle_index = [];
-      // 				var scriptsToReplace = [];
+  // prepare inputs
+  var fullInputTransactionHash = [];
+  var fullInputTXindex = [];
+  var address_handle_chain = [];
+  var address_handle_index = [];
+  // 				var scriptsToReplace = [];
 
-      var incoin = [];
-      for (var k in unspent) {
-        var u = unspent[k];
-        for (var i = 0; i < u.length; i++) {
-          var ui = u[i]
-          var coin = {
-              "hash": ui.txid,
-              "age": ui.confirmations,
-              "address": k,
-              "coin": ui,
-              "chain": ui.chain,
-              "index": ui.index
-          };
-    			console.log("address: " + coin.address);
-          //             			console.log("coin: " + coin.coin);
-    			console.log("chain: " + coin.chain);
-    			console.log("index: " + coin.index);
-          incoin.push(coin);
-        }
-      }
-      var sortcoin = _.sortBy(incoin, function(c) {
-          return c.age;
-      });
+  // var incoin = [];
+  // for (var k in unspent) {
+  //   var u = unspent[k];
+  //   for (var i = 0; i < u.length; i++) {
+  //     var ui = u[i]
+  //     var coin = {
+  //         "hash": ui.txid,
+  //         "age": ui.confirmations,
+  //         "address": k,
+  //         "coin": ui,
+  //         "chain": ui.chain,
+  //         "index": ui.index
+  //     };
+		// 	console.log("address: " + coin.address);
+  //     //             			console.log("coin: " + coin.coin);
+		// 	console.log("chain: " + coin.chain);
+		// 	console.log("index: " + coin.index);
+  //     incoin.push(coin);
+  //   }
+  // }
+  // var sortcoin = _.sortBy(incoin, function(c) {
+  //     return c.age;
+  // });
 
-      inamount = 0;
-      var tx = new Bitcoin.Transaction();
+  // inamount = 0;
+  var tx = new Bitcoin.Transaction();
 
-      var toaddr = new Bitcoin.Address(receiver);
-      var to = new Bitcoin.TransactionOut({
-          value: valueFromSatoshi(amount),
-          script: Bitcoin.Script.createOutputScript(toaddr)
-      });
-      tx.addOutput(to);
-      // add in the hooks to the + button here
+  var toaddr = new Bitcoin.Address(receiver);
+  var to = new Bitcoin.TransactionOut({
+      value: valueFromSatoshi(amount),
+      script: Bitcoin.Script.createOutputScript(toaddr)
+  });
+  tx.addOutput(to);
+  // add in the hooks to the + button here
 
-      var usedkeys = [];
-      for (var i = 0; i < sortcoin.length; i++) {
-        var coin = sortcoin[i].coin;
-        var tin = new Bitcoin.TransactionIn({
-            outpoint: {
-                hash: Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(coin.txid).reverse()), //  .reverse()!
-                index: coin.vout
-            },
-            script: Bitcoin.Util.hexToBytes(coin.scriptPubKey),
-            seroverluence: 4294967295
-        });
-        scriptsToReplace[i] = coin.scriptPubKey;
-        fullInputTransactionHash[i] = Bitcoin.Util.bytesToHex(Bitcoin.Util.hexToBytes(coin.txid));  // no .reverse()!
-        //             		alert("fullInputTransactionHash[" + i + "]: " + fullInputTransactionHash[i]);
-        fullInputTXindex[i] = coin.vout;
-        address_handle_chain[i] = coin.chain;
-        address_handle_index[i] = coin.index;
+  var usedkeys = [];
+  for (var i = 0; i < txp.inputs.length; i++) {
+    var coin = txp.inputs[i];
+    var tin = new Bitcoin.TransactionIn({
+        outpoint: {
+            hash: Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(coin.txid).reverse()), //  .reverse()!
+            index: coin.vout
+        },
+        script: Bitcoin.Util.hexToBytes(coin.scriptPubKey),
+        seroverluence: 4294967295
+    });
+    scriptsToReplace[i] = coin.scriptPubKey;
+    fullInputTransactionHash[i] = Bitcoin.Util.bytesToHex(Bitcoin.Util.hexToBytes(coin.txid));  // no .reverse()!
+    //             		alert("fullInputTransactionHash[" + i + "]: " + fullInputTransactionHash[i]);
+    fullInputTXindex[i] = coin.vout;
+    // address_handle_chain[i] = coin.chain;
+    // address_handle_index[i] = coin.index;
 
-        tx.addInput(tin);
-        inamount += coin.amount * 100000000;
-        usedkeys.push(sortcoin[i].address);
-
-        if (inamount >= target) {
-            break;
-        }
-      }
-
-      if (inamount > target) {
-        //                 ROLLING
-          var changeaddr = chains['change'].derive_child(usechange).eckey.getBitcoinAddress();
-          //                     var changeaddr = chains['receive'].derive_child(0).eckey.getBitcoinAddress();
-          var ch = new Bitcoin.TransactionOut({
-              value: valueFromSatoshi(inamount - target),
-              script: Bitcoin.Script.createOutputScript(changeaddr)
-          });
-          tx.addOutput(ch);
-      }
-
-      if (key.has_private_key) {
-          for (var i = 0; i < usedkeys.length; i++) {
-              k = usedkeys[i];
-              var inchain = null;
-              if (k in addresses['receive']) {
-                  inchain = addresses['receive'];
-              } else if (k in addresses['change']) {
-                  inchain = addresses['change'];
-              }
-              if (inchain) {
-                  tx.signWithKey(inchain[k].eckey);
-              } else {
-                  console.log("Don't know about all the keys needed.");
-              }
-          }
-          $("#signedtxlabel").show()
-          $("#unsignedtxlabel").hide()
-          $("#submit_signed_transaction").removeAttr('disabled');
-      } else {
-          $("#unsignedtxlabel").show()
-          $("#signedtxlabel").hide()
-          $("#preptxlabel").show()
-
-          $("#submit_signed_transaction").attr('disabled', true);
-      }
-      $("#output_transaction").val(Bitcoin.Util.bytesToHex(tx.serialize()));
-      var unsignedTransactionToBeCoded = Bitcoin.Util.bytesToHex(tx.serialize());
-      var fullInputTXHex = [];
-      var how_many_inputs = fullInputTXindex.length;
-      var mCounter = 0;
-        //                 alert("fullInputTXindex.length: " + how_many_inputs);
-
-      $.each(fullInputTransactionHash, function(i, val){
-        // 					alert("in each: " + i + " " + val);
-
-       $.get(baseUrl + '/rawtx/' + val)
-  				.done
-  				(
-  					function(data)
-  						{
-                // 									alert(data.rawtx);
-                // 									console.log("in each done: "  + data.rawtx + " i:" + i);
-  							fullInputTXHex[i] = data.rawtx;
-  							mCounter++;
-  							if(mCounter == how_many_inputs){prepForSigning(unsignedTransactionToBeCoded, fullInputTXHex, fullInputTXindex, address_handle_chain, address_handle_index)}
-  						}
-  				)
-  				.fail
-  				(
-  					function()
-  						{
-  							alert("failed to fetch data");
-  						}
-  				)
-  			} // end each function
-  		) // end each
-      console.log("fullInputTXindex: " + fullInputTXindex);
-      console.log("unsignedTransactionToBeCoded: " + unsignedTransactionToBeCoded);
-  		for(m=0; m < how_many_inputs; m++) {
-              console.log("scripts to replace: " + scriptsToReplace[m]);
-  		}
-      return tx;
-    }
+    tx.addInput(tin);
+    // usedkeys.push(sortcoin[i].address);
   }
+
+  if (inamount > target) {
+    //                 ROLLING
+      var changeaddr = chains['change'].derive_child(usechange).eckey.getBitcoinAddress();
+      //                     var changeaddr = chains['receive'].derive_child(0).eckey.getBitcoinAddress();
+      var ch = new Bitcoin.TransactionOut({
+          value: valueFromSatoshi(inamount - target),
+          script: Bitcoin.Script.createOutputScript(changeaddr)
+      });
+      tx.addOutput(ch);
+  }
+  // tx.signWithKey(inchain[k].eckey);
+  // if (key.has_private_key) {
+  //     for (var i = 0; i < usedkeys.length; i++) {
+  //         k = usedkeys[i];
+  //         var inchain = null;
+  //         if (k in addresses['receive']) {
+  //             inchain = addresses['receive'];
+  //         } else if (k in addresses['change']) {
+  //             inchain = addresses['change'];
+  //         }
+  //         if (inchain) {
+  //             tx.signWithKey(inchain[k].eckey);
+  //         } else {
+  //             console.log("Don't know about all the keys needed.");
+  //         }
+  //     }
+  //     $("#signedtxlabel").show()
+  //     $("#unsignedtxlabel").hide()
+  //     $("#submit_signed_transaction").removeAttr('disabled');
+  // } else {
+  //     $("#unsignedtxlabel").show()
+  //     $("#signedtxlabel").hide()
+  //     $("#preptxlabel").show()
+
+  //     $("#submit_signed_transaction").attr('disabled', true);
+  // }
+  var unsignedTransactionToBeCoded = Bitcoin.Util.bytesToHex(tx.serialize());
+  var fullInputTXHex = [];
+  var how_many_inputs = fullInputTXindex.length;
+  var mCounter = 0;
+    //                 alert("fullInputTXindex.length: " + how_many_inputs);
+
+// _.eachSeries(fullInputTransactionHash, function(val, i){
+//     // 					alert("in each: " + i + " " + val);
+
+//    $.get(baseUrl + '/rawtx/' + val)
+// 			.done
+// 			(
+// 				function(data)
+// 					{
+//             // 									alert(data.rawtx);
+//             // 									console.log("in each done: "  + data.rawtx + " i:" + i);
+// 						fullInputTXHex[i] = data.rawtx;
+// 						mCounter++;
+// 						if(mCounter == how_many_inputs){prepForSigning(unsignedTransactionToBeCoded, fullInputTXHex, fullInputTXindex, address_handle_chain, address_handle_index)}
+// 					}
+// 			)
+// 			.fail
+// 			(
+// 				function()
+// 					{
+// 						alert("failed to fetch data");
+// 					}
+// 			)
+// 		} // end each function
+// 	) // end each
+//   console.log("fullInputTXindex: " + fullInputTXindex);
+//   console.log("unsignedTransactionToBeCoded: " + unsignedTransactionToBeCoded);
+// 	for(m=0; m < how_many_inputs; m++) {
+//           console.log("scripts to replace: " + scriptsToReplace[m]);
+// 	}
+  return tx;
+
 }
 this.scanWallet = function() {
   currentCommand = 'scanWallet'
@@ -975,6 +944,7 @@ this.deviceFound = function(device, errorCode)  {
 this.connect = function(address)	{
   var bleapi = this
   evothings.ble.stopScan();
+  var def = $q.defer()
   if(platform === 'android') pausecomp(1000);
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
@@ -995,6 +965,7 @@ this.connect = function(address)	{
 				}
 				BleApi.deviceHandle = device.deviceHandle;
 				BleApi.getServices();
+        return def.resolve()
 			}
 			else
 			{
@@ -1013,6 +984,7 @@ this.connect = function(address)	{
       delete knownDevices[address]
       BleApi.startScanNew();
 		});
+  return def.promise
 }
 // old sliceAndWrite64, 'data' is a command constant
 this.write = function(data, timer, noPromise) {

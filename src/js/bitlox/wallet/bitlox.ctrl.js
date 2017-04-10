@@ -4,9 +4,9 @@
   angular.module('app.core')
       .controller('BitLoxCtrl', BitLoxCtrl);
 
-  BitLoxCtrl.$inject = ['$scope', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'platformInfo'];
+  BitLoxCtrl.$inject = ['$rootScope', '$scope', '$log', '$stateParams', '$ionicHistory', '$ionicLoading', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'platformInfo'];
 
-  function BitLoxCtrl($scope, hidchrome, hidweb, bleapi, platformInfo) {
+  function BitLoxCtrl($rootScope, $scope, $log, $stateParams, $ionicHistory, $ionicLoading, hidchrome, hidweb, bleapi, platformInfo) {
 
     var api = hidweb;
     if (platformInfo.isChromeApp) {
@@ -60,12 +60,22 @@
         },5000)
       }
     }
-    $scope.connectBle = function(address, $event) {
-      if($event) {
-        console.log(JSON.stringify($event))
-      }
+    $scope.connectBle = function(address, goBack) {
+      $ionicLoading.show({
+            template: 'Connecting to Bitlox'
+          });
       console.log('connecting to '+address)
-      api.connect(address)
+      api.connect(address).then(function() {
+        $log.debug("connection successful")
+        if(goBack) {
+          $rootScope.$broadcast('bitloxConnected')
+        }
+      }, function(err) {
+        $log.debug("BitLox Connection Error", err)
+      }).finally(function() {
+        $ionicLoading.hide()
+
+      })
     }
     if($scope.bitlox.isMobile) {
       api.initialize();
@@ -83,6 +93,7 @@
     api.$scope && api.$scope.$watch('status', function(hidstatus) {
       checkStatus(hidstatus)
     });
+
     function checkStatus(hidstatus) {
       console.warn("New device status: " + hidstatus)
       switch(hidstatus) {

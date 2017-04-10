@@ -328,6 +328,7 @@
             type: null,
             payload: {}
         };
+        console.log(command, length, payload)
 
         switch (command) {
         case "3A": // initialize
@@ -577,11 +578,11 @@
         var inputData = [];
         async.eachSeries(opts.tx.inputs, function(input, next) {
             // make a handler
-
           var inputPath = input.path.split('/')
             input.chain = parseInt(inputPath[1],10)
             input.chainIndex = parseInt(inputPath[2],10)
-            
+
+            console.log(inputPath)            
 
             var handler = hidapi.makeAddressHandler(input.chain, input.chainIndex);
             // add to the handler array
@@ -608,7 +609,7 @@
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
 
-
+            console.log(addrHandlers,dataBuf)
             var dataBuf = hidapi.hexUtil.hexToByteBuffer(dataString);
             dataBuf.flip();
             var txMessage = new Device.SignTransactionExtended({
@@ -723,14 +724,7 @@
             address_handle_index: chainIndex,
         });
         var cmd = this.makeCommand(this.commands.setChangePrefix, otpMessage);
-        var hidapi = this;
-        return hidapi.write(cmd).then(function(written) {
-            if (written === 0) {
-                return hidapi.$q.reject(new Error("No data written"));
-            } else if (written === -1) {
-                return hidapi.$q.reject(new Error("Write error"));
-            }
-        });
+        return this._doCommand(cmd, this.TYPE_SUCCESS)
     };
 
     HidAPI.prototype.flash = function() {

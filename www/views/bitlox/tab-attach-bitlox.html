@@ -28,7 +28,7 @@
             <span  ng-if="api.getNumDevices() < 1">No devices found - </span>Tap to refresh
           </a>
           <a ng-repeat="device in api.getKnownDevices()"
-             ng-click="connectBle(device.address)"
+             ng-click="connectBle(device.address, false)"
                 class="item item-remove-animate">
             {{device.name}}
             <pre>{{device}}</pre>

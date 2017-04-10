@@ -4,9 +4,9 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope','$log', '$state', '$timeout', 'MAX_WALLETS', 'bitloxWallet', 'Toast', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'platformInfo'];
+    WalletCtrl.$inject = ['$scope','$log', '$state', '$stateParams', '$timeout', 'MAX_WALLETS', 'bitloxWallet', 'Toast', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'platformInfo'];
 
-    function WalletCtrl($scope, $log, $state, $timeout, MAX_WALLETS, bitloxWallet, Toast, hidchrome, hidweb, bleapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, platformInfo) {
+    function WalletCtrl($scope, $log, $state, $stateParams, $timeout, MAX_WALLETS, bitloxWallet, Toast, hidchrome, hidweb, bleapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, platformInfo) {
         var vm = this;
         var api = hidweb;
         if (platformInfo.isChromeApp) {
@@ -16,14 +16,15 @@
           api = bleapi;
         }
         $scope.api = api;
+
         vm.onCreateFinished = function(res) {
           $scope.createToggle = false
           $timeout(vm.readWallets.bind(vm), 100)
-          // wallet.getBip32().then(function() {
-          //   $timeout(vm.readWallets.bind(vm), 1000).then(function() {
-          //     _importExtendedPublicKey(wallet)
-          //   });
-          // })
+          wallet.getBip32().then(function() {
+            $timeout(vm.readWallets.bind(vm), 1000).then(function() {
+              _importExtendedPublicKey(wallet)
+            });
+          })
         }
 
         // dave says this comes from the import.js file by copay, with edits
@@ -51,10 +52,12 @@
 
             opts.network = true
             opts.bwsurl = 'https://bws.bitpay.com/bws/api'
-            ongoingProcess.set('importingWallet', true);
+            $ionicLoading.show({
+              template: 'Importing BitLox Wallet...'
+            });
             // console.warn("START IMPORTING")
             profileService.createWallet(opts, function(err, walletId) {
-              ongoingProcess.set('importingWallet', false);
+              $ionicLoading.hide()
               // console.warn("DONE IMPORTING")
               if (err) {
                 console.error(err)
@@ -64,7 +67,7 @@
 
 
               walletService.updateRemotePreferences(walletId);
-              $ionicHistory.goBack(2);
+              $ionicHistory.goBack(-2);
 
             });
           }).catch(function(e) {
@@ -78,7 +81,7 @@
               vm.readWallets();
           });
         }
-        else if(platformInfo.isMobile) {
+        else if(platformInfo.isMobile && !$stateParams.connectOnly) {
           $scope.$watch('api.getStatus()', function(newVal) {
             if(newVal === api.STATUS_CONNECTED) {
                 $timeout(vm.readWallets.bind(vm), 1000);
@@ -101,7 +104,9 @@
         vm.loadWallet = function(wallet) {
             vm.openWallet = null;
             vm.loadingXpub = true;
-            // console.debug("loading wallet", wallet.number);
+            $ionicLoading.show({
+                  template: 'Connecting to Bitlox...'
+                });            // console.debug("loading wallet", wallet.number);
             vm.openingWallet = wallet.number;
             wallet.open()
                 .then(function() {
@@ -118,6 +123,7 @@
                 .finally(function() {
                     console.debug("done loading wallet", wallet.number);
                     vm.openingWallet = -99;
+                    $ionicLoading.hide()
                 });
         };
 
@@ -178,7 +184,9 @@
             vm.openWallet = null;
             // read after a timeout, so angular does not hang and show
             // garbage while the browser is locked form readin the device
-            $timeout(vm.readWallets.bind(vm), 100);
+            if(!$stateParams.connectOnly)        {
+              $timeout(vm.readWallets.bind(vm), 100);
+            }
         }
 
 

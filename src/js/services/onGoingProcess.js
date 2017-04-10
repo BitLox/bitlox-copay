@@ -45,7 +45,11 @@ angular.module('copayApp.services').factory('ongoingProcess', function($log, $ti
     'cancelingGiftCard': 'Canceling Gift Card...',
     'creatingGiftCard': 'Creating Gift Card...',
     'buyingGiftCard': 'Buying Gift Card...',
-    'topup': 'Top up in progress...'
+    'topup': 'Top up in progress...',
+    'checkYourBitlox': 'Check Your BitLox',
+    'connectingBitlox': 'Connecting to Bitlox'
+
+
   };
 
   root.clear = function() {

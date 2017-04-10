@@ -4,9 +4,9 @@
     angular.module('app.wallet')
         .directive('walletCreate', walletCreate);
 
-    walletCreate.$inject = ['bitloxWallet', 'Toast', 'BIP39WordList', '$stateParams'];
+    walletCreate.$inject = ['bitloxWallet', '$ionicLoading', 'Toast', 'BIP39WordList', '$stateParams'];
 
-    function walletCreate(bitloxWallet, Toast, wordlist, $stateParams) {
+    function walletCreate(bitloxWallet, $ionicLoading, Toast, wordlist, $stateParams) {
         return {
             scope: {
                 availableNumbers: '=',
@@ -18,13 +18,15 @@
                 reset();
 
                 scope.createWallet = function() {
-                  console.log("CREATING WALLET NOW")
+                    $ionicLoading.show({message: "Creating Wallet, Check Your BitLox"})
                     scope.creatingWallet = true;
                     bitloxWallet.create(scope.newWallet.number, scope.newWallet).then(function(res) {
                       scope.onFinish(res);
                     }, Toast.errorHandler).finally(function(res) {
                         // reset();
                         scope.creatingWallet = false;
+                        $ionicLoading.hide()
+
                     });
                 };
 

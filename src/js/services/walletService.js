@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('copayApp.services').factory('walletService', function($log, $timeout, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox) {
+angular.module('copayApp.services').factory('walletService', function($rootScope, $log, $timeout, $ionicLoading, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox, platformInfo) {
   // `wallet` is a decorated version of client.
 
   var root = {};
@@ -39,16 +39,68 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
       return wallet.signTxProposal(txp, cb);
     });
   };
+
   var _signWithBitlox = function(wallet, txp, cb) {
+    $log.debug('wallet', Object.keys(wallet))
+    $log.debug('TX', Object.keys(txp))
+    console.log(wallet,txp)
+      if(platformInfo.isMobile && bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
+        var newScope = $rootScope.$new();
+        $ionicModal.fromTemplateUrl('views/bitlox/tab-attach-bitlox-modal.html', {
+            scope: newScope,
+            animation: 'slide-in-up'
+          }).then(function(modal) {
+            newScope.modal = modal;
+            newScope.modal.show();
+          }).catch(function(err) {
+            $log.debug('modal error', err)
+          });      
+          newScope.closeModal = function() {
+            newScope.modal.hide();
+          };
+          // // Cleanup the modal when we're done with it!
+          // newScope.$on('$destroy', function() {
+          //   newScope.modal.remove();
+          // });
+          // Execute action on hide modal
+          newScope.$on('modal.hidden', function() {
+            // Execute action
+            cb(new Error("Unable to connect to BitLox"))
+          });
+          // Execute action on remove modal
+          // newScope.$on('modal.removed', function() {
+          //   // Execute action
+          //   _bitloxSend(wallet,txp,cb)
+          // });   
+          newScope.$on('bitloxConnected', function() {
+            // Execute action
+            newScope.modal.hide();
+            _bitloxSend(wallet,txp,cb)
+          });               
+      } else {
+        _bitloxSend(wallet,txp,cb)
+      }
+  }
+  function _bitloxSend(wallet,txp,cb) {
+    $ionicLoading.show({
+      template: 'Check Your Bitlox...'
+    });
     $log.info('Requesting Bitlox to sign the transaction');
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
     var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
+    if(!xPubKeys) {
+      return cb(new Error("Unable to connect to BitLox, pub key error"))
+    }
+    if(platformInfo.isMobile && bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
+      return cb(new Error("Unable to connect to BitLox, Bluetooth error"))
+    }
     $log.debug('xPubKeys', xPubKeys)
+
     bitlox.api.getDeviceUUID().then(function(results) {
       var externalSource = wallet.getPrivKeyExternalSourceName()
       var bitloxInfo = externalSource.split('/')
       if(bitloxInfo[1] !== results.payload.device_uuid.toString('hex')) {
-        return cb(new Error('The sending wallet is not connected to this BitLox device'))
+        return cb(new Error('This wallet is not on the connected BitLox device or has been moved. Select the correct Bitlox or contact support.'))
       }
       $log.debug(bitloxInfo)
       bitlox.wallet.list()
@@ -67,6 +119,7 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
                 }
 
                 return bitlox.api.setChangeAddress(1).then(function() {
+                  $log.debug('Done setting change address')
                   return bitlox.api.signTransaction(opts)
                   .then(function(result) {
                     $log.debug('Bitlox response', result);
@@ -99,9 +152,8 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
     }).catch(function(e) {
       $log.debug('cannot get device uuid', e)
       return cb(e)
-    })
-
-  };
+    })    
+  }
   root.invalidateCache = function(wallet) {
     if (wallet.cachedStatus)
       wallet.cachedStatus.isValid = false;
@@ -1045,6 +1097,8 @@ angular.module('copayApp.services').factory('walletService', function($log, $tim
 
         ongoingProcess.set('signingTx', true, customStatusHandler);
         root.signTx(wallet, publishedTxp, password, function(err, signedTxp) {
+
+          $ionicLoading.hide()
           ongoingProcess.set('signingTx', false, customStatusHandler);
           root.invalidateCache(wallet);
 
