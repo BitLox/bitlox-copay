@@ -804,6 +804,7 @@ this.getServices = function() {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
+      pausecomp(1000)
 			BleApi.startReading();
 		}
 		else
@@ -870,6 +871,7 @@ this.startReading = function() {
       $rootScope.$applyAsync();
     });
   BleApi.displayStatus('Ready');
+  pausecomp(1000)
   status = BleApi.STATUS_CONNECTED
   return $rootScope.$applyAsync()
 }
@@ -944,7 +946,7 @@ this.connect = function(address)	{
   var bleapi = this
   evothings.ble.stopScan();
   var def = $q.defer()
-  if(platform === 'android') pausecomp(1000);
+  if(platform === 'android') pausecomp(1500);
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
   }
@@ -960,7 +962,7 @@ this.connect = function(address)	{
 				BleApi.displayStatus('Connected');
 				if(platform == "android")
 				{
-					pausecomp(1000);
+					pausecomp(1500);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
 				BleApi.getServices();
