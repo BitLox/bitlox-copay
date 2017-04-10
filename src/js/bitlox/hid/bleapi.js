@@ -228,7 +228,7 @@ this.getDeviceUUID = function() {
 ////////////////////////////
 this.setChangeAddress = function(changeIndex) {
   currentCommand = 'setChangeAddress'
-  var msg = new Device2.SetChangeAddressIndex({
+  var msg = new protoDevice.SetChangeAddressIndex({
     "address_handle_index": changeIndex
   });
   var cmd = this.makeCommand(deviceCommands.setChangePrefix, msg);
