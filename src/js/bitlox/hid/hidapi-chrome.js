@@ -77,6 +77,7 @@
     HidAPI.STATUS_CONNECTING       = HidAPI.prototype.STATUS_CONNECTING = "connecting";
     HidAPI.STATUS_READING          = HidAPI.prototype.STATUS_READING = "reading";
     HidAPI.STATUS_WRITING          = HidAPI.prototype.STATUS_WRITING = "writing";
+    HidAPI.STATUS_IDLE          = HidAPI.prototype.STATUS_IDLE = "idle";
 
 
     // Get the device. If we already have it, just return it.
@@ -317,7 +318,7 @@
         },function(e) {
           console.warn("error in read", e)
         }).finally(function() {
-            hidapi.$scope.status = hidapi.STATUS_CONNECTED;
+            hidapi.$scope.status = hidapi.STATUS_IDLE;
         });
     };
 
@@ -718,10 +719,10 @@
     };
 
     HidAPI.prototype.setChangeAddress = function(chainIndex) {
-//     	console.debug("in hidapi setChangeAddress");
+    	// console.debug("in hidapi setChangeAddress",chainIndex,typeof(chainIndex));
         var Device = this.protoBuilder();
         var otpMessage = new Device.SetChangeAddressIndex({
-            address_handle_index: chainIndex,
+            address_handle_index: parseInt(chainIndex,10),
         });
         var cmd = this.makeCommand(this.commands.setChangePrefix, otpMessage);
         return this._doCommand(cmd, this.TYPE_SUCCESS)

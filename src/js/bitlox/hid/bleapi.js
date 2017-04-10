@@ -230,9 +230,9 @@ this.setChangeAddress = function(changeIndex) {
   currentCommand = 'setChangeAddress'
   var msg = new Device2.SetChangeAddressIndex({
     "address_handle_index": changeIndex
-  });  
+  });
   var cmd = this.makeCommand(deviceCommands.setChangePrefix, msg);
-  return this.write(cmd);  
+  return this.write(cmd);
 }
 this.newWallet = function(walletNumber, options) {
   currentCommand = "newWallet"
@@ -750,7 +750,7 @@ this.initProtoBuf = function(cb) {
 this.displayStatus = function(status) {
 	console.log('Status: '+status);
 }
-this.getServices = function() {
+this.getServices = function(def) {
   var bleapi = this
 
 	BleApi.displayStatus('Reading services...');
@@ -804,7 +804,7 @@ this.getServices = function() {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-			BleApi.startReading();
+			BleApi.startReading(def);
 		}
 		else
 		{
@@ -823,7 +823,7 @@ this.getServices = function() {
 * 	be processed. The passed frame may not contain the whole message, which will be completed
 * 	in subsequent frames. Android needs a shim of ~10 ms to properly keep up.
 */
-this.startReading = function() {
+this.startReading = function(def) {
   var bleapi = this
 	BleApi.displayStatus('Enabling notifications...');
 
@@ -870,9 +870,9 @@ this.startReading = function() {
       $rootScope.$applyAsync();
     });
   BleApi.displayStatus('Ready');
-
   status = BleApi.STATUS_CONNECTED
   $rootScope.$applyAsync()
+  return def.resolve()
 }
 
 // 	Actual write function
@@ -946,6 +946,11 @@ this.connect = function(address)	{
   evothings.ble.stopScan();
   var def = $q.defer()
   if(platform === 'android') pausecomp(1000);
+  console.log(status)
+  console.log(status)
+  console.log(status)
+  console.log(status)
+  console.log(status)
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
   }
@@ -964,16 +969,16 @@ this.connect = function(address)	{
 					pausecomp(1000);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
-				BleApi.getServices();
-        return def.resolve()
+				BleApi.getServices(def);
 			}
 			else
 			{
         status = BleApi.STATUS_DISCONNECTED
         $rootScope.$applyAsync()
-				BleApi.displayStatus('Disconnected');
-				pausecomp(50);
-				BleApi.connect(address);
+				// BleApi.displayStatus('Disconnected');
+				// pausecomp(50);
+				// BleApi.connect(address);
+        return def.reject(new Error('Unable to connect to BitLox BLE'))
 			}
 		},
 		function(errorCode)
@@ -983,6 +988,9 @@ this.connect = function(address)	{
 			BleApi.displayStatus('connect: ' + errorCode);
       delete knownDevices[address]
       BleApi.startScanNew();
+      if(parseInt(errorCode,10) === 133) {
+        return def.reject(new Error('Unable to maintain connection to BitLox BLE'))
+      }
 		});
   return def.promise
 }
@@ -2917,7 +2925,7 @@ console.log("address_handle_index " + address_handle_index);
             Device2 = builder2.build();
 
         var txContents2 = new Device2.SetChangeAddressIndex({
-        	"address_handle_index": address_handle_index
+        	"address_handle_index": parseInt(address_handle_index,10)
         });
 
 

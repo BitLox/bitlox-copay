@@ -54,9 +54,9 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
             newScope.modal.show();
           }).catch(function(err) {
             $log.debug('modal error', err)
-          });      
+          });
           newScope.closeModal = function() {
-            newScope.modal.hide();
+            newScope.modal.remove();
           };
           // // Cleanup the modal when we're done with it!
           // newScope.$on('$destroy', function() {
@@ -65,24 +65,25 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
           // Execute action on hide modal
           newScope.$on('modal.hidden', function() {
             // Execute action
-            cb(new Error("Unable to connect to BitLox"))
+            console.warn('modal got hid')
           });
-          // Execute action on remove modal
-          // newScope.$on('modal.removed', function() {
-          //   // Execute action
-          //   _bitloxSend(wallet,txp,cb)
-          // });   
+
+          newScope.$on('modal.removed', function() {
+            // Execute action
+            console.warn('modal got rmd')
+
+          });
           newScope.$on('bitloxConnected', function() {
             // Execute action
             newScope.modal.hide();
             _bitloxSend(wallet,txp,cb)
-          });               
+          });
       } else {
         _bitloxSend(wallet,txp,cb)
       }
   }
   function _bitloxSend(wallet,txp,cb) {
-    if(bitlox.api.status !== bitlox.api.STATUS_CONNECTED && bitlox.api.status !== bitlox.api.STATUS_IDLE) {
+    if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
       return cb(new Error("Unable to connect to BitLox"))
     }
 
@@ -119,8 +120,10 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                   return cb(new Error('pubkeys do not match'))
                 }
                 var changeIndex = txp.changeAddress.path.split('/')[2]
+                $log.debug('changeIndex', changeIndex)
                 return bitlox.api.setChangeAddress(changeIndex).then(function() {
                   $log.debug('Done setting change address')
+                  $log.debug('opts to send to BitLox', opts)
                   return bitlox.api.signTransaction(opts)
                   .then(function(result) {
                     $log.debug('Bitlox response', result);
@@ -144,8 +147,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
             })
           }
         }
+        return cb(new Error('This wallet is not on the connected BitLox device or has been moved. Select the correct Bitlox or contact support.'))
 
-        return cb(new Error('the wallet no longer exists on the bitlox'))
       }).catch(function(e) {
         $log.debug('Bitlox wallet list error', e)
         return cb(e)
@@ -153,7 +156,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
     }).catch(function(e) {
       $log.debug('cannot get device uuid', e)
       return cb(e)
-    })    
+    })
   }
   root.invalidateCache = function(wallet) {
     if (wallet.cachedStatus)
