@@ -1393,47 +1393,19 @@ this.processResults = function(command, length, payload) {
     break;
 
     case "64": // signature return
-      var SignatureComplete = protoDevice.SignatureComplete.decodeHex(payload);
-      // 					console.log("SignatureComplete: " + SignatureComplete.signature_complete_data);
-      //                  console.log("number of signatures: " + SignatureComplete.signature_complete_data.length);
-      var sigIndex;
-      var unSignedTransaction = document.getElementById("output_transaction").value;
-        // 					console.log("unSignedTransaction pre: " + unSignedTransaction);
-
-      for (sigIndex=0; sigIndex < SignatureComplete.signature_complete_data.length; sigIndex++){
-
-      	var payloadSig = SignatureComplete.signature_complete_data[sigIndex].signature_data_complete.toString("hex");
-      	var payloadSigSizeHex = payloadSig.substring(0, 2);
-      	var payloadSigSizeDec = h2d(payloadSigSizeHex);
-      	var payloadSigSizeChars = 2 + (payloadSigSizeDec * 2);
-        // 						console.log("SignatureComplete:Data:signature_data_complete " + sigIndex + "  SIZE (HEX) " + payloadSigSizeHex + "  SIZE (DEC) " + payloadSigSizeDec);
-        // 						console.log("SignatureComplete:Data:signature_data_complete RAW " + sigIndex + " " + payloadSig);
-				payloadSig = payloadSig.substring(0, payloadSigSizeChars);
-        // 						console.log("SignatureComplete:Data:signature_data_complete TRIM " + sigIndex + " " + payloadSig);
-				var scriptPrefix = "19";
-				var script = scriptPrefix.concat(scriptsToReplace[sigIndex]);
-
-        // 						console.log("script to replace: " + script);
-        // 						console.log("unSignedTransaction: " + unSignedTransaction);
-
-				unSignedTransaction = unSignedTransaction.replace(script, payloadSig);
-        // 						console.log("SignatureComplete:Data:signature_data_complete part SIGNED " + sigIndex + " " + unSignedTransaction);
-      }
-      // 					console.log("SignatureComplete:Data:signature_data_complete SIGNED " + unSignedTransaction);
-      //                     document.getElementById("ready_to_transmit").textContent = unSignedTransaction;
-      BleApi.displayStatus('Signature received');
-      this.sendData({rawTransaction:unSignedTransaction},BleApi.TYPE_SIGNATURE_RETURN)
-      // if(currentCommand == 'signAndSend')
-      // {
-      //     BleApi.displayStatus('Submitting...');
-      // 	rawSubmitAuto(unSignedTransaction);
-      // } else  {
-			// 	document.getElementById("rawTransaction").value = unSignedTransaction;
-			// 	$("#signedtxlabel").show()
-			// 	$("#rawSubmitBtn").attr('disabled',false);
-      //
-      // }
-
+            data.type = HidAPI.TYPE_SIGNATURE_RETURN;
+            var signedScripts = [];
+            var sigs = Device.SignatureComplete.decodeHex(payload).signature_complete_data;
+            sigs.forEach(function(sig) {
+                var sigHex = sig.signature_data_complete.toString('hex');
+                var sigSize = parseInt(sigHex.slice(0, 2), 16);
+                var sigChars = 2 + (sigSize * 2);
+                sigHex = sigHex.slice(0, sigChars);
+                signedScripts.push(sigHex);
+            });
+            this.sendData({
+                signedScripts: signedScripts
+            }, BleApi.TYPE_SIGNATURE_RETURN);        // 						console.log("SignatureComplete:Data:signature_data_complete part SIGNED " + sigIndex + " " + unSignedTransaction);
     break;
 
     case "71": // message signing return

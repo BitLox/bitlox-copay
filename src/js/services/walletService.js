@@ -85,8 +85,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
       }
   }
   function _bitloxSend(wallet,txp,cb) {
-    var status = bitlox.api.getStatus()
-    if(platformInfo.isMobile && status !== bitlox.api.STATUS_IDLE && status !== bitlox.api.STATUS_CONNECTED) {
+    if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
 
       return cb(new Error("Unable to connect to BitLox"))
     }

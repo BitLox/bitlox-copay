@@ -385,11 +385,14 @@
             data.type = HidAPI.TYPE_SIGNATURE_RETURN;
             var signedScripts = [];
             var sigs = Device.SignatureComplete.decodeHex(payload).signature_complete_data;
+            console.log(sigs)
             sigs.forEach(function(sig) {
                 var sigHex = sig.signature_data_complete.toString('hex');
+                console.log('original sig', sigHex)
                 var sigSize = parseInt(sigHex.slice(0, 2), 16);
                 var sigChars = 2 + (sigSize * 2);
                 sigHex = sigHex.slice(0, sigChars);
+                console.log('sliced up sig', sigHex)
                 signedScripts.push(sigHex);
             });
             data.payload = {
