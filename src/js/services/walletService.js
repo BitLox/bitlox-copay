@@ -90,13 +90,18 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
       return cb(new Error("Unable to connect to BitLox"))
     }
-    var tx = new bitlox.transaction({
-        outputs: txp.outputs,
-        fee: txp.fee,
-        inputs: txp.inputs,
-        changeAddress: txp.changeAddress.address,
-        // forceSmallChange: forceSmallChange,
-    });
+    try {
+
+      var tx = new bitlox.transaction({
+          outputs: txp.outputs,
+          fee: txp.fee,
+          inputs: txp.inputs,
+          changeAddress: txp.changeAddress.address,
+          // forceSmallChange: forceSmallChange,
+      });
+    } catch(e) {
+      return cb(e)
+    }
     tx.bwsInputs = txp.inputs
 
     $ionicLoading.show({
