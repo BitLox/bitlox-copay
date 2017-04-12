@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('copayApp.services').factory('walletService', function($rootScope, $log, $timeout, $ionicLoading, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox, platformInfo) {
+angular.module('copayApp.services').factory('walletService', function($rootScope, $log, $timeout, $ionicLoading, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox, platformInfo, txUtil) {
   // `wallet` is a decorated version of client.
 
   var root = {};
@@ -140,9 +140,14 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                     $log.debug('Bitlox response', result);
                     if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
                       txp.signatures = result.payload.signedScripts;
-                      console.log(txp.signatures)
                       tx.replaceScripts(txp.signatures)
-                      return wallet.signTxProposal(txp, cb);
+                      root.removeTx(wallet, txp, function() {
+                        txUtil.submit(tx.signedHex).then(function() {
+                          return cb(null, txp)
+                        }, function(err) {
+                          return cb(err)
+                        })
+                      })
                     } else {
                       $log.debug('TX parse error', result)
                       return cb(new Error("TX parse error"))
@@ -1128,6 +1133,9 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
             $rootScope.$emit('Local/TxAction', wallet.id);
             return cb(msg);
+          }
+          if(signedTxp.bitlox) {
+            return cb(null, signedTxp);
           }
 
           if (signedTxp.status == 'accepted') {
