@@ -23,34 +23,36 @@
                 throw ERR_INVALID_FEE;
             }
             var outputs = this.outputs = options.outputs;
-            if (!outputs) {
-                // if no outputs in the options, look for "to" and
-                // "amount" and make an output object
-                var to = options.to;
-                if (!to) {
-                    throw ERR_NO_OUTPUTS;
-                }
-                var amount = parseInt(options.amount, 10);
-                if (isNaN(amount)) {
-                    throw ERR_INVALID_AMOUNT;
-                }
-                outputs = this.outputs = [{
-                    address: to,
-                    amount: amount
-                }];
-            }
-            if (!Array.isArray(outputs)) {
-                outputs = [outputs];
-            }
-            var inputs = options.inputs;
-            if (!inputs || !Array.isArray(inputs)) {
-                throw ERR_NO_INPUTS;
-            }
+            // dave says no more of this, we let the BWS choose
+            // if (!outputs) {
+            //     // if no outputs in the options, look for "to" and
+            //     // "amount" and make an output object
+            //     var to = options.to;
+            //     if (!to) {
+            //         throw ERR_NO_OUTPUTS;
+            //     }
+            //     var amount = parseInt(options.amount, 10);
+            //     if (isNaN(amount)) {
+            //         throw ERR_INVALID_AMOUNT;
+            //     }
+            //     outputs = this.outputs = [{
+            //         address: to,
+            //         amount: amount
+            //     }];
+            // }
+            // if (!Array.isArray(outputs)) {
+            //     outputs = [outputs];
+            // }
+            // var inputs = options.inputs;
+            // if (!inputs || !Array.isArray(inputs)) {
+            //     throw ERR_NO_INPUTS;
+            // }
             // sort inputs by most to least confirmations
-            inputs.sort(function(a, b) {
-                return a.confirmations > b.confirmations ? -1 : 1;
-            });
-            var changeAddress = this.changeAddress = options.change || options.changeAddress;
+            // dave says no more of this, we let the server choose and sort inputs now
+            // inputs.sort(function(a, b) {
+            //     return a.confirmations > b.confirmations ? -1 : 1;
+            // });
+            var changeAddress = this.changeAddress = options.changeAddress.address;
             if (!changeAddress) {
                 throw ERR_NO_CHANGE_ADDRESS;
             }
@@ -76,7 +78,7 @@
             } else if (change > 0 && change < MIN_OUTPUT) {
                 if (options.forceSmallChange) {
                     this.addOutput({
-                        address: changeAddress,
+                        toAddress: changeAddress,
                         amount: change
                     }, 'force it');
                 } else {
@@ -115,7 +117,7 @@
                 throw ERR_AMOUNT_TOO_LOW;
             }
             this.totalOut += amount;
-            var address = output.address;
+            var address = output.toAddress;
             var bcAddr = new Bitcoin.Address(address);
             var bcOut = new Bitcoin.TransactionOut({
                 value: hexUtil.intToBigEndianValue(amount, 8),
@@ -144,16 +146,16 @@
             if (input.confirmations < 1) {
                 return;
             }
-            var amount = parseInt(input.value, 10);
+            var amount = parseInt(input.satoshis, 10);
             if (isNaN(amount)) {
                 throw ERR_INVALID_AMOUNT;
             }
-            var hash = Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(input.tx_hash));
-            var script = Bitcoin.Util.hexToBytes(input.script);
+            var hash = Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(input.txid));
+            var script = Bitcoin.Util.hexToBytes(input.scriptPubKey);
             var bcIn = new Bitcoin.TransactionIn({
                 outpoint: {
                     hash: hash,
-                    index: input.tx_output_n
+                    index: input.vout
                 },
                 script: script,
                 sequence: 4294967295

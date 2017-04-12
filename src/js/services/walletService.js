@@ -41,6 +41,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
   };
 
   var _signWithBitlox = function(wallet, txp, cb) {
+    console.log(txp)
       if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE) {
         var newScope = $rootScope.$new();
         var successListener;
@@ -89,13 +90,21 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
       return cb(new Error("Unable to connect to BitLox"))
     }
+    var tx = new bitlox.transaction({
+        outputs: txp.outputs,
+        fee: txp.fee,
+        inputs: txp.inputs,
+        changeAddress: txp.changeAddress.address,
+        // forceSmallChange: forceSmallChange,
+    });
+    tx.inputs = txp.inputs
 
     $ionicLoading.show({
       template: 'Check Your Bitlox...'
     });
     $log.info('Requesting Bitlox to sign the transaction');
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
-    var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
+    // var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
     if(!xPubKeys) {
       return cb(new Error("Unable to connect to BitLox, pub key error"))
     }
@@ -126,8 +135,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                 $log.debug('changeIndex', changeIndex)
                 return bitlox.api.setChangeAddress(changeIndex).then(function() {
                   $log.debug('Done setting change address')
-                  $log.debug('opts to send to BitLox', opts)
-                  return bitlox.api.signTransaction(opts)
+                  return bitlox.api.signTransaction(tx)
                   .then(function(result) {
                     $log.debug('Bitlox response', result);
                     if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {

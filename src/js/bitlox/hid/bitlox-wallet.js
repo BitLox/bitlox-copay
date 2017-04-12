@@ -7,12 +7,14 @@ angular.module('hid')
 'bitloxHidWeb',
 'bitloxBleApi',
 'bitloxWallet',
+'bitloxTransaction',
 
 function Bitlox(platformInfo,
 bitloxHidChrome,
 bitloxHidWeb,
 bitloxBleApi,
-bitloxWallet) {
+bitloxWallet,
+bitloxTransaction) {
 
 this.api = bitloxHidWeb
 if (platformInfo.isChromeApp) {
@@ -23,5 +25,6 @@ else if(platformInfo.isMobile) {
 }
 
 this.wallet = bitloxWallet
+this.transaction = bitloxTransaction
 
 }])})(window.angular);

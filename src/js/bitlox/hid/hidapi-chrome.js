@@ -580,7 +580,7 @@
         var Device = this.protoBuilder();
         var addrHandlers = [];
         var inputData = [];
-        async.eachSeries(opts.tx.inputs, function(input, next) {
+        async.eachSeries(opts.inputs, function(input, next) {
             // make a handler
           var inputPath = input.path.split('/')
             input.chain = parseInt(inputPath[1],10)
@@ -597,6 +597,7 @@
                 var thisInputData = '01';
                 thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
                 thisInputData += hex;
+                console.log(hex,thisInputData)
                 inputData.push(thisInputData);
                 return next();
             }, function(err) {
@@ -606,15 +607,16 @@
             if (err) {
                 return deferred.reject(err);
             }
+            console.log(inputData)
             var dataString = '00';
-            dataString += opts.rawTx
-            console.warn("raw="+opts.rawTx)
+            dataString += opts.unsignedHex
+            console.warn("raw="+opts.unsignedHex)
             // hash type
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
 
-            console.log(addrHandlers,dataBuf)
             var dataBuf = hidapi.hexUtil.hexToByteBuffer(dataString);
+            console.log(addrHandlers,dataBuf)
             dataBuf.flip();
             var txMessage = new Device.SignTransactionExtended({
                 address_handle_extended: addrHandlers,
