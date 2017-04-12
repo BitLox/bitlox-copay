@@ -97,10 +97,10 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
         changeAddress: txp.changeAddress.address,
         // forceSmallChange: forceSmallChange,
     });
-    tx.bwsInputs = txp.bwsInputs
+    tx.bwsInputs = txp.inputs
 
     $ionicLoading.show({
-      template: 'Check Your Bitlox...'
+      template: 'Check Your BitLox...'
     });
     $log.info('Requesting Bitlox to sign the transaction');
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
@@ -140,6 +140,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                     $log.debug('Bitlox response', result);
                     if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
                       txp.signatures = result.payload.signedScripts;
+                      console.log(txp.signatures)
+                      tx.replaceScripts(txp.signatures)
                       return wallet.signTxProposal(txp, cb);
                     } else {
                       $log.debug('TX parse error', result)

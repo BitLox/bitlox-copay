@@ -154,7 +154,8 @@
             if (isNaN(amount)) {
                 throw ERR_INVALID_AMOUNT;
             }
-            var hash = Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(input.txid));
+            var txid_little = hexUtil.makeStringSmallEndian(input.txid)
+            var hash = Bitcoin.Util.bytesToBase64(Bitcoin.Util.hexToBytes(txid_little));
             var script = Bitcoin.Util.hexToBytes(input.scriptPubKey);
             var bcIn = new Bitcoin.TransactionIn({
                 outpoint: {
@@ -171,6 +172,7 @@
         };
 
         Transaction.prototype.replaceScripts = function(signedScripts) {
+
             if (!Array.isArray(signedScripts)) {
                 throw ERR_BAD_SIGNED_SCRIPTS;
             }
@@ -179,7 +181,7 @@
             }
             var hex = this.unsignedHex;
             this.inputs.forEach(function(input, index) {
-                hex = hex.replace('19' + input.script, signedScripts[index]);
+                hex = hex.replace('19' + input.scriptPubKey, signedScripts[index]);
             });
             this.signedHex = hex;
             return hex;

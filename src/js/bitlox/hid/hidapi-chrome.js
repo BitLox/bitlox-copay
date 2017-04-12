@@ -580,7 +580,7 @@
         var Device = this.protoBuilder();
         var addrHandlers = [];
         var inputData = [];
-        async.eachSeries(opts.txpInputs, function(input, next) {
+        async.eachSeries(opts.bwsInputs, function(input, next) {
             // make a handler
           var inputPath = input.path.split('/')
             input.chain = parseInt(inputPath[1],10)
@@ -608,6 +608,7 @@
                 return deferred.reject(err);
             }
             console.log(inputData)
+            
             var dataString = '00';
             dataString += opts.unsignedHex
             console.warn("raw="+opts.unsignedHex)
