@@ -580,7 +580,7 @@
         var Device = this.protoBuilder();
         var addrHandlers = [];
         var inputData = [];
-        async.eachSeries(opts.inputs, function(input, next) {
+        async.eachSeries(opts.txpInputs, function(input, next) {
             // make a handler
           var inputPath = input.path.split('/')
             input.chain = parseInt(inputPath[1],10)

@@ -97,7 +97,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
         changeAddress: txp.changeAddress.address,
         // forceSmallChange: forceSmallChange,
     });
-    tx.inputs = txp.inputs
+    tx.bwsInputs = txp.bwsInputs
 
     $ionicLoading.show({
       template: 'Check Your Bitlox...'
