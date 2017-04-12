@@ -2,7 +2,7 @@
     'use strict';
 
     angular.module('bitcoin')
-        .factory('Transaction', TransactionFactory);
+        .factory('bitloxTransaction', TransactionFactory);
 
     TransactionFactory.$inject = ['hexUtil', 'DEFAULT_FEE', 'MIN_OUTPUT'];
 
@@ -22,6 +22,7 @@
             if (isNaN(fee) || fee < 0) {
                 throw ERR_INVALID_FEE;
             }
+            options.forceSmallChange = true
             var outputs = this.outputs = options.outputs;
             // dave says no more of this, we let the BWS choose
             // if (!outputs) {
@@ -71,6 +72,9 @@
             this.target = this.totalOut + this.fee;
             // then add inputs
             var change = this.changeAmount = this.addInputs(inputs);
+            console.log(inputs)
+            console.log(outputs)
+            console.log(change + ' change')
             if (change < 0) {
                 // if change is less than 0, out inputs were not enough to
                 // cover the outputs
@@ -90,7 +94,7 @@
                 // if greater than 0, then we have change left over,
                 // send it to the change address provided
                 this.addOutput({
-                    address: changeAddress,
+                    toAddress: changeAddress,
                     amount: change
                 });
             }
