@@ -7,7 +7,7 @@
     WalletFactory.$inject = [
         '$q', '$timeout',
         'WalletStatus',
-         'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'BIP32', 'Transaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'platformInfo'
+         'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'BIP32', 'bitloxTransaction', 'addressInfo', 'MIN_OUTPUT', 'bcMath', 'platformInfo'
       ];
 
     function WalletFactory(
