@@ -149,11 +149,12 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                       txp.signatures = result.payload.signedScripts;
                       tx.replaceScripts(txp.signatures)
                       return root.removeTx(wallet, txp, function() {
-                        return txUtil.submit(tx.signedHex).then(function() {
-                          return cb(null, txp)
-                        }, function(err) {
-                          return cb(err)
-                        })
+                        // return txUtil.submit(tx.signedHex).then(function() {
+                        //   return cb(null, txp)
+                        // }, function(err) {
+                        //   return cb(err)
+                        // })
+                        return cb(null,txp)
                       })
                     } else {
                       $log.debug('TX parse error', result)

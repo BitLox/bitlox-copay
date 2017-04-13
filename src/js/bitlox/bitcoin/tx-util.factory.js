@@ -44,7 +44,6 @@
         function submit(signedHex) {
         	console.debug("raw signed tx ", signedHex);
             var d = $q.defer()
-            return d.resolve() 
             $http.post(baseUrl + '/tx/send', {
                 rawtx: signedHex
             }).then(function(res) {

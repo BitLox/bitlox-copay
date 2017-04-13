@@ -813,7 +813,6 @@ this.getServices = function(def) {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-      pausecomp(2000)
 			BleApi.startReading(def);
 		}
 		else
@@ -845,45 +844,43 @@ this.startReading = function(def) {
 		'writeDescriptor',
 		BleApi.deviceHandle,
 		BleApi.descriptorNotification,
-		new Uint8Array([1,0]));
+		new Uint8Array([1,0]), function() {
+      // Start reading notifications.
+      evothings.ble.enableNotification(
+        BleApi.deviceHandle,
+        BleApi.characteristicRead,
+        function(data) {
+          BleApi.displayStatus('Active');
+          var buf = new Uint8Array(data);
+          for (var i = 0 ; i < buf.length; i++)
+          {
+            sD = sD.concat(d2h(buf[i]).toString('hex'));
+          };
 
-  pausecomp(2000)
-  // Start reading notifications.
-  evothings.ble.enableNotification(
-    BleApi.deviceHandle,
-    BleApi.characteristicRead,
-    function(data) {
-      BleApi.displayStatus('Active');
-      var buf = new Uint8Array(data);
-      for (var i = 0 ; i < buf.length; i++)
-      {
-        sD = sD.concat(d2h(buf[i]).toString('hex'));
-      };
+          // console.log('data semifinal: ' + sD);
+          for (var i = 0 ; i < buf.length; i++)
+          {
+            buf[i] = 0;
+          };
+          BleApi.sendToProcess(sD);
+          sD = '';
+          if(platform == "android")
+          {
+            pausecomp(20);
+          }
 
-      // console.log('data semifinal: ' + sD);
-      for (var i = 0 ; i < buf.length; i++)
-      {
-        buf[i] = 0;
-      };
-      BleApi.sendToProcess(sD);
-      sD = '';
-      if(platform == "android")
-      {
-        pausecomp(20);
-      }
-
-    },
-    function(errorCode) {
-      BleApi.displayStatus('enableNotification error: ' + errorCode);
-      status = BleApi.STATUS_DISCONNECTED
-      evothings.ble.close(BleApi.deviceHandle)
-      $rootScope.$applyAsync();
+        },
+        function(errorCode) {
+          BleApi.displayStatus('enableNotification error: ' + errorCode);
+          status = BleApi.STATUS_DISCONNECTED
+          evothings.ble.close(BleApi.deviceHandle)
+          $rootScope.$applyAsync();
+        });
+      BleApi.displayStatus('Ready');
+      status = BleApi.STATUS_CONNECTED
+      $rootScope.$applyAsync()
+      def.resolve()
     });
-  BleApi.displayStatus('Ready');
-  status = BleApi.STATUS_CONNECTED
-  $rootScope.$applyAsync()
-  def.resolve()
-
 }
 
 // 	Actual write function
@@ -897,15 +894,15 @@ this.bleWrite = function(writeFunc, deviceHandle, handle, value, cb) {
       function()
       {
       // 					alert(writeFunc + ': ' + handle + ' success.');
-        console.log(writeFunc + ': ' + handle + ' success.');
+        console.log(writeFunc + ': ' + JSON.stringify(handle) + ' success.');
         if(cb) cb();
       },
       function(errorCode)
       {
           // 					alert(writeFunc + ': ' + handle + ' error: ' + errorCode);
 
-        console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
-        if(cb) cb();
+        console.log(writeFunc + ': ' + JSON.stringify(handle) + ' error: ' + errorCode);
+        if(cb) cb(new Error(writeFunc + ': ' + JSON.stringify(handle) + ' error: ' + errorCode));
       });
   }
 }
@@ -970,9 +967,6 @@ this.connect = function(address)	{
 			if (device.state == 2) // Connected
 			{
 				BleApi.displayStatus('Connected');
-				if(platform === "android") {
-					pausecomp(1000);
-				}
 				BleApi.deviceHandle = device.deviceHandle;
 				BleApi.getServices(def);
 			}
@@ -1061,43 +1055,58 @@ this.write = function(data, timer, noPromise) {
   var j = 0;
   var parseLength = 0;
   console.log("transData.length " + transData.length);
-  for (j = 0; j< transData.length; j++)
-  {
-    parseLength = transData[j].length
+
+  async.eachSeries(transData, function(data, next) {
+    parseLength = data.length
 
     var bb = new ByteBuffer();
-    // 	console.log("utx length = " + parseLength);
+    //  console.log("utx length = " + parseLength);
     var i;
     for (i = 0; i < parseLength; i += 2) {
-      var value = transData[j].substring(i, i + 2);
-      // 	console.log("value = " + value);
+      var value = data.substring(i, i + 2);
+      //  console.log("value = " + value);
       var prefix = "0x";
       var together = prefix.concat(value);
-      // 	console.log("together = " + together);
+      //  console.log("together = " + together);
       var result = parseInt(together);
-      // 	console.log("result = " + result);
+      //  console.log("result = " + result);
 
       bb.writeUint8(result);
     }
     bb.flip();
 
-    this.bleWrite(
+    BleApi.bleWrite(
       'writeCharacteristic',
-      this.deviceHandle,
-      this.characteristicWrite,
+      BleApi.deviceHandle,
+      BleApi.characteristicWrite,
       bb
-      );
-    if(platform == "android")
-    {
-      pausecomp(100);
+      , function(err) {
+        // if(platform == "android") {
+        //   pausecomp(200);
+        // }        
+        if(err) {
+
+          return next(new Error('Command Write Error'))
+        } else {
+          return next()
+        }
+      });
+  }, function(err) {
+    if(err) {
+      evothings.ble.close(BleApi.deviceHandle)
+      status = BleApi.STATUS_DISCONNECTED
+      $rootScope.$applyAsync()
+      return currentPromise.reject(new Error('Command Write Error'))      
     }
-  }
-  status = BleApi.STATUS_READING
-  $rootScope.$applyAsync();
+    status = BleApi.STATUS_READING
+    $rootScope.$applyAsync();
+
+
+  })
 
   if(!noPromise) {
     if(!timer) timer = 30000;
-    console.log(timer + " seconds. hurry up!")
+    console.log(timer + " milliseconds. hurry up!")
     timeout = setTimeout(function() {
       console.warn("TIMEOUT of Write Command")
       evothings.ble.close(BleApi.deviceHandle)
@@ -1105,7 +1114,7 @@ this.write = function(data, timer, noPromise) {
       $rootScope.$applyAsync()
       currentPromise.reject(new Error('Command Write Timeout'))
     },timer)
-  }
+  }    
   return currentPromise.promise;
 };
 /**
@@ -1149,30 +1158,28 @@ this.sendToProcess = function(rawData) {
 		var dataToSendOut = incomingData;
 		incomingData = '';
 		dataReady = false;
-		this.finalPrepProcess(dataToSendOut);
-	}
-}
-/**
- *	Takes whole message strings and preps them for consumption by the processResults function
-*/
-this.finalPrepProcess = function(dataToProcess) {
-    if (dataToProcess.match(/2323/)) {
-      var headerPosition = dataToProcess.search(2323);
-      var command = dataToProcess.substring(headerPosition + 4, headerPosition + 8);
+    /**
+     *  Takes whole message strings and preps them for consumption by the processResults function
+    */
+
+    if (dataToSendOut.match(/2323/)) {
+      var headerPosition = dataToSendOut.search(2323);
+      var command = dataToSendOut.substring(headerPosition + 4, headerPosition + 8);
       // document.getElementById("command").innerHTML = command;
-      var payloadSize2 = dataToProcess.substring(headerPosition + 8, headerPosition + 16);
+      var payloadSize2 = dataToSendOut.substring(headerPosition + 8, headerPosition + 16);
       console.log('PayloadSize: ' + payloadSize2);
       var decPayloadSize = parseInt(payloadSize2, 16);
       console.log('decPayloadSize: ' + decPayloadSize);
       console.log('decPayloadSize*2 + 16: ' + ((decPayloadSize *2) + 16));
 
       // document.getElementById("payLoadSize").innerHTML = payloadSize2;
-      var payload = dataToProcess.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
+      var payload = dataToSendOut.substring(headerPosition + 16, headerPosition + 16 + (2 * (decPayloadSize)));
       // document.getElementById("payload_HEX").innerHTML = payload;
       // document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
-      // console.log('ready to process: ' + dataToProcess);
+      // console.log('ready to process: ' + dataToSendOut);
       this.processResults(command, payloadSize2, payload);
-    }
+    }    
+	}
 }
 
 this.sendData = function(data,type) {

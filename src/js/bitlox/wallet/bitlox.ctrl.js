@@ -82,7 +82,7 @@
             $rootScope.$broadcast('bitloxConnectError')
             $ionicLoading.hide()
           }
-        },5000)
+        },1000)
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
         $ionicLoading.hide()
