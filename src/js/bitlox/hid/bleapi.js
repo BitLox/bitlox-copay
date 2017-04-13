@@ -344,7 +344,7 @@ this.signTransaction = function(opts) {
     var addrHandlers = [];
     var inputData = [];
     var deferred = $q.defer()
-    return async.eachSeries(opts.bwsInputs, function(input, next) {
+    async.eachSeries(opts.bwsInputs, function(input, next) {
         var inputPath = input.path.split('/')
         input.chain = parseInt(inputPath[1],10)
         input.chainIndex = parseInt(inputPath[2],10)
