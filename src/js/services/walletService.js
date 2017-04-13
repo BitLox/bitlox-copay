@@ -72,7 +72,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
             // Execute action
             successListener()
             errorListener()
-            _bitloxSend(wallet,txp,cb)
+            setTimeout(function() {_bitloxSend(wallet,txp,cb)},1000)
           });
           successListener = newScope.$on('bitloxConnectSuccess', function() {
             // Execute action
