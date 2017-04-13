@@ -23,34 +23,46 @@
         function getHex(bigEndianTxid) {
         	console.debug("raw source txid " + bigEndianTxid);
             var url = baseUrl + '/rawtx/' + bigEndianTxid 
+            var d = $q.defer()
             console.log(url)
-            return $http.get(url).success(function(res) {
+            return $http.get(url).then(function(res) {
+                console.log("rawtX get")
+                if(res) { console.log(JSON.stringify(res.data)) }
                 if(res.data && res.data.rawtx) {
-                    console.warn("raw tx " + res.data.rawtx)
+                    return d.resolve(res.data.rawtx)
+                } else {
+                    return d.reject(new Error("Unable to get raw TX"))
                 }
-            }).error(function(err) {
+            },function(err) {
+                console.error("Error rawtX get`")
                 console.error(err)
+                return d.reject(err)
             });
         }
 
         function submit(signedHex) {
         	console.debug("raw signed tx ", signedHex);
+            var d = $q.defer()
             return $http.post(baseUrl + '/tx/send', {
                 rawtx: signedHex
-            }).success(function(res) {
-                console.log(res)
+            }).then(function(res) {
+                console.log('submit return')
                 if (!res.data || res.data.error) {
                 	console.debug("tx error ", res.data.error);
                     if (res.data.error.indexOf("already spent") >= 0) {
-                        return $q.reject(new Error("Some inputs already spent, please try transaction again in a few minutes"));
+                        return d.reject(new Error("Some inputs already spent, please try transaction again in a few minutes"));
                     } else {
-                        return $q.reject(new Error(res.data.error));
+                        return d.reject(new Error(res.data.error));
                     }
+                } else {
+                    return d.resolve()
                 }
-            }).error(function(err) {
+            },function(err) {
+                console.error("submit TX error")
                 console.error(err)
-                return $q.reject(new Error(err));
+                return d.reject(new Error(err));
             });
+            return d.promise
         }
 
         return txUtil;

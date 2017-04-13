@@ -341,10 +341,10 @@ this.makeAddressHandler = function(chain, chainIndex) {
 ////////////////////////////
 // tx is from bitcoin/transaction.factory.js
 this.signTransaction = function(opts) {
-    var deferred = $q.defer();
     var addrHandlers = [];
     var inputData = [];
-    async.eachSeries(opts.bwsInputs, function(input, next) {
+    var deferred = $q.defer()
+    return async.eachSeries(opts.bwsInputs, function(input, next) {
         var inputPath = input.path.split('/')
         input.chain = parseInt(inputPath[1],10)
         input.chainIndex = parseInt(inputPath[2],10)
@@ -354,8 +354,7 @@ this.signTransaction = function(opts) {
         // add to the handler array
         addrHandlers.push(handler);
         // get the hex of the full input transaction
-        txUtil.getHex(input.txid).then(function(res) {
-          var hex = res.data.rawtx;
+        txUtil.getHex(input.txid).then(function(hex) {
             var thisInputData = '01';
             var vout = hexUtil.intToBigEndianString(input.vout, 4);
             thisInputData += vout
@@ -385,9 +384,13 @@ this.signTransaction = function(opts) {
         var cmd = BleApi.makeCommand(deviceCommands.signTxPrefix, msg);
         // console.warn('sending something')
         // console.warn(cmd)
-        return BleApi.write(cmd, 900000)
+        return BleApi.write(cmd, 900000).then(function(res) {
+          return deferred.resolve(res)
+        },function(e) {
+          return deferred.resolve(e)
+        })
     });
-    return deferred.promise;
+    return deferred.promise
 };
 
 this.signTransactionOld = function(unsignedtx, originatingTransactionArray, originatingTransactionArrayIndices, address_handle_chain, address_handle_index) {

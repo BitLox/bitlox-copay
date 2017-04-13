@@ -86,10 +86,14 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
       }
   }
   function _bitloxSend(wallet,txp,cb) {
+    $ionicLoading.show({
+      template: 'Check Your BitLox...'
+    });    
     if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
 
       return cb(new Error("Unable to connect to BitLox"))
     }
+
     try {
 
       var tx = new bitlox.transaction({
@@ -104,9 +108,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
     }
     tx.bwsInputs = txp.inputs
 
-    $ionicLoading.show({
-      template: 'Check Your BitLox...'
-    });
+
     $log.info('Requesting Bitlox to sign the transaction');
     var xPubKeys = lodash.pluck(wallet.credentials.publicKeyRing, 'xPubKey');
     // var opts = {tx: txp, rawTx: bwcService.getUtils().buildTx(txp).uncheckedSerialize()}
@@ -115,14 +117,14 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
     }
     $log.debug('xPubKeys', xPubKeys)
 
-    bitlox.api.getDeviceUUID().then(function(results) {
+    return bitlox.api.getDeviceUUID().then(function(results) {
       var externalSource = wallet.getPrivKeyExternalSourceName()
       var bitloxInfo = externalSource.split('/')
       if(bitloxInfo[1] !== results.payload.device_uuid.toString('hex')) {
         return cb(new Error('This wallet is not on the connected BitLox device or has been moved. Select the correct Bitlox or contact support.'))
       }
       $log.debug(bitloxInfo)
-      bitlox.wallet.list()
+      return bitlox.wallet.list()
       .then(function(wallets) {
         for(var i=0; i<wallets.length;i++) {
           thisWallet = wallets[i]
