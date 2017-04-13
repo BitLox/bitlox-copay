@@ -1399,7 +1399,7 @@ this.processResults = function(command, length, payload) {
 
     case "64": // signature return
             var signedScripts = [];
-            var sigs = Device.SignatureComplete.decodeHex(payload).signature_complete_data;
+            var sigs = protoDevice.SignatureComplete.decodeHex(payload).signature_complete_data;
             sigs.forEach(function(sig) {
                 var sigHex = sig.signature_data_complete.toString('hex');
                 var sigSize = parseInt(sigHex.slice(0, 2), 16);
