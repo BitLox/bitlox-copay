@@ -25,7 +25,7 @@
             var url = baseUrl + '/rawtx/' + bigEndianTxid 
             var d = $q.defer()
             console.log(url)
-            return $http.get(url).then(function(res) {
+            $http.get(url).then(function(res) {
                 console.log("rawtX get")
                 if(res) { console.log(JSON.stringify(res.data)) }
                 if(res.data && res.data.rawtx) {
@@ -38,12 +38,14 @@
                 console.error(err)
                 return d.reject(err)
             });
+            return d.promise
         }
 
         function submit(signedHex) {
         	console.debug("raw signed tx ", signedHex);
             var d = $q.defer()
-            return $http.post(baseUrl + '/tx/send', {
+            return d.resolve()
+            $http.post(baseUrl + '/tx/send', {
                 rawtx: signedHex
             }).then(function(res) {
                 console.log('submit return')
