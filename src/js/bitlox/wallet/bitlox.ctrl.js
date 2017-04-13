@@ -17,7 +17,10 @@
     }
 
     $scope.api = api;
-
+    if(platformInfo.isMobile) {
+      api.initialize();
+    }
+    
     $scope.bitlox = {
       isMobile: platformInfo.isMobile,
       connectAttempted: false,
@@ -85,9 +88,7 @@
         $ionicLoading.hide()
       })    
     }
-    if($scope.bitlox.isMobile) {
-      api.initialize();
-    }
+
 
     $scope.$watch('api.getBleReady()', function(newVal) {
       if(newVal) {

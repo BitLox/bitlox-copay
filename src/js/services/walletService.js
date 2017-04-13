@@ -146,8 +146,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                     if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
                       txp.signatures = result.payload.signedScripts;
                       tx.replaceScripts(txp.signatures)
-                      root.removeTx(wallet, txp, function() {
-                        txUtil.submit(tx.signedHex).then(function() {
+                      return root.removeTx(wallet, txp, function() {
+                        return txUtil.submit(tx.signedHex).then(function() {
                           return cb(null, txp)
                         }, function(err) {
                           return cb(err)
@@ -1138,9 +1138,6 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
             $rootScope.$emit('Local/TxAction', wallet.id);
             return cb(msg);
-          }
-          if(signedTxp.bitlox) {
-            return cb(null, signedTxp);
           }
 
           if (signedTxp.status == 'accepted') {

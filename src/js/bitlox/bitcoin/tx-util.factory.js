@@ -38,7 +38,8 @@
             return $http.post(baseUrl + '/tx/send', {
                 rawtx: signedHex
             }).success(function(res) {
-                if (res.data.error) {
+                console.log(res)
+                if (!res.data || res.data.error) {
                 	console.debug("tx error ", res.data.error);
                     if (res.data.error.indexOf("already spent") >= 0) {
                         return $q.reject(new Error("Some inputs already spent, please try transaction again in a few minutes"));

@@ -385,7 +385,7 @@ this.signTransaction = function(opts) {
         var cmd = BleApi.makeCommand(deviceCommands.signTxPrefix, msg);
         // console.warn('sending something')
         // console.warn(cmd)
-        BleApi.write(cmd, 9000000).then(deferred.resolve, deferred.reject);
+        return BleApi.write(cmd, 900000)
     });
     return deferred.promise;
 };
@@ -717,6 +717,11 @@ this.initialize = function() {
 	document.addEventListener(
 		'deviceready',
     function() {
+      // if we've already initialized don't do it again
+      if(bleReady) { 
+        console.log("ALREADY INITIALIZED, STOPPING")
+        return true;
+      }
       platform = window.device.platform.toLowerCase()
       BleApi.initProtoBuf(function(err, device) {
         if(err) {
@@ -805,7 +810,7 @@ this.getServices = function(def) {
 		if (BleApi.characteristicRead && BleApi.characteristicWrite && BleApi.descriptorNotification && BleApi.characteristicName && BleApi.descriptorName)
 		{
       BleApi.displayStatus('RX/TX services found!');
-      pausecomp(1000)
+      pausecomp(2000)
 			BleApi.startReading(def);
 		}
 		else
@@ -839,7 +844,7 @@ this.startReading = function(def) {
 		BleApi.descriptorNotification,
 		new Uint8Array([1,0]));
 
-
+  pausecomp(2000)
   // Start reading notifications.
   evothings.ble.enableNotification(
     BleApi.deviceHandle,
@@ -861,7 +866,7 @@ this.startReading = function(def) {
       sD = '';
       if(platform == "android")
       {
-        pausecomp(10);
+        pausecomp(20);
       }
 
     },
@@ -948,7 +953,7 @@ this.connect = function(address)	{
   var bleapi = this
   evothings.ble.stopScan();
   var def = $q.defer()
-  if(platform === 'android') pausecomp(1500);
+  if(platform === 'android') pausecomp(1000);
   if(status === BleApi.STATUS_CONNECTING) {
     return $q.reject(new Error("Already connecting"));
   }
@@ -963,7 +968,7 @@ this.connect = function(address)	{
 			{
 				BleApi.displayStatus('Connected');
 				if(platform === "android") {
-					pausecomp(1500);
+					pausecomp(1000);
 				}
 				BleApi.deviceHandle = device.deviceHandle;
 				BleApi.getServices(def);
@@ -1393,7 +1398,6 @@ this.processResults = function(command, length, payload) {
     break;
 
     case "64": // signature return
-            data.type = HidAPI.TYPE_SIGNATURE_RETURN;
             var signedScripts = [];
             var sigs = Device.SignatureComplete.decodeHex(payload).signature_complete_data;
             sigs.forEach(function(sig) {
