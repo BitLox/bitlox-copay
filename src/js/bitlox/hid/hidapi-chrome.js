@@ -597,7 +597,6 @@
                 var thisInputData = '01';
                 thisInputData += hidapi.hexUtil.intToBigEndianString(input.vout, 4);
                 thisInputData += hex;
-                console.log(hex,thisInputData)
                 inputData.push(thisInputData);
                 return next();
             }, function(err) {
@@ -607,25 +606,25 @@
             if (err) {
                 return deferred.reject(err);
             }
-            console.log(inputData)
+            // console.log(inputData)
             
             var dataString = '00';
             dataString += opts.unsignedHex
-            console.warn("raw="+opts.unsignedHex)
+            // console.warn("raw="+opts.unsignedHex)
             // hash type
             dataString += '01000000';
             dataString = inputData.join('') + dataString;
 
             var dataBuf = hidapi.hexUtil.hexToByteBuffer(dataString);
-            console.log(addrHandlers,dataBuf)
+            // console.log(addrHandlers,dataBuf)
             dataBuf.flip();
             var txMessage = new Device.SignTransactionExtended({
                 address_handle_extended: addrHandlers,
                 transaction_data: dataBuf
             });
             var cmd = hidapi.makeCommand(hidapi.commands.signTxPrefix, txMessage);
-            console.log('sending')
-            console.log(cmd)
+            // console.log('sending')
+            // console.log(cmd)
             hidapi._doCommand(cmd, hidapi.TYPE_SIGNATURE_RETURN).then(deferred.resolve, deferred.reject);
         });
         return deferred.promise;

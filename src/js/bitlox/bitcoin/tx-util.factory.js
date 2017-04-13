@@ -37,7 +37,7 @@
         	console.debug("raw signed tx ", signedHex);
             return $http.post(baseUrl + '/tx/send', {
                 rawtx: signedHex
-            }).then(function(res) {
+            }).success(function(res) {
                 if (res.data.error) {
                 	console.debug("tx error ", res.data.error);
                     if (res.data.error.indexOf("already spent") >= 0) {
@@ -46,8 +46,9 @@
                         return $q.reject(new Error(res.data.error));
                     }
                 }
-//                 console.debug("tx good ", JSON.stringify(res.data));
-                return res.data;
+            }).error(function(err) {
+                console.error(err)
+                return $q.reject(new Error(err));
             });
         }
 

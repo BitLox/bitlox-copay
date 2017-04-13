@@ -344,7 +344,7 @@ this.signTransaction = function(opts) {
     var deferred = $q.defer();
     var addrHandlers = [];
     var inputData = [];
-    async.eachSeries(opts.tx.inputs, function(input, next) {
+    async.eachSeries(opts.bwsInputs, function(input, next) {
         var inputPath = input.path.split('/')
         input.chain = parseInt(inputPath[1],10)
         input.chainIndex = parseInt(inputPath[2],10)
@@ -369,10 +369,10 @@ this.signTransaction = function(opts) {
         if (err) {
             return deferred.reject(err);
         }
-        console.warn("raw="+opts.rawTx)
+
         var dataString = '00';
-        dataString += opts.rawTx
-        // hash type
+            dataString += opts.unsignedHex
+            // console.warn("raw="+opts.unsignedHex)        // hash type
         dataString += '01000000';
         dataString = inputData.join('') + dataString;
 
@@ -383,8 +383,8 @@ this.signTransaction = function(opts) {
             transaction_data: dataBuf
         });
         var cmd = BleApi.makeCommand(deviceCommands.signTxPrefix, msg);
-        console.warn('sending something')
-        console.warn(cmd)
+        // console.warn('sending something')
+        // console.warn(cmd)
         BleApi.write(cmd, 9000000).then(deferred.resolve, deferred.reject);
     });
     return deferred.promise;
