@@ -20,7 +20,7 @@
     if(platformInfo.isMobile) {
       api.initialize();
     }
-    
+
     $scope.bitlox = {
       isMobile: platformInfo.isMobile,
       connectAttempted: false,
@@ -69,7 +69,9 @@
           });
       console.log('connecting to '+address)
       api.connect(address).then(function() {
-
+      }, function(err) {
+        $log.debug("BitLox Connection Error", err)
+      }).finally(function() {
         setTimeout(function() {
           if(api.getStatus() === api.STATUS_CONNECTED) {
             $log.debug("connection successful")
@@ -83,10 +85,7 @@
             $ionicLoading.hide()
           }
         },1000)
-      }, function(err) {
-        $log.debug("BitLox Connection Error", err)
-        $ionicLoading.hide()
-      })    
+      })
     }
 
 
