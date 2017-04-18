@@ -4,9 +4,9 @@
   angular.module('app.core')
       .controller('BitLoxCtrl', BitLoxCtrl);
 
-  BitLoxCtrl.$inject = ['$rootScope', '$scope', '$log', '$stateParams', '$ionicHistory', '$ionicLoading', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'platformInfo'];
+  BitLoxCtrl.$inject = ['$rootScope', '$scope', '$log', '$stateParams', 'gettextCatalog', '$ionicHistory', '$ionicLoading', 'popupService', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', 'platformInfo'];
 
-  function BitLoxCtrl($rootScope, $scope, $log, $stateParams, $ionicHistory, $ionicLoading, hidchrome, hidweb, bleapi, platformInfo) {
+  function BitLoxCtrl($rootScope, $scope, $log, $stateParams, gettextCatalog, $ionicHistory, $ionicLoading, popupService,  hidchrome, hidweb, bleapi, platformInfo) {
 
     var api = hidweb;
     if (platformInfo.isChromeApp) {
@@ -69,22 +69,24 @@
           });
       console.log('connecting to '+address)
       api.connect(address).then(function() {
-      }, function(err) {
-        $log.debug("BitLox Connection Error", err)
-      }).finally(function() {
         setTimeout(function() {
+          $ionicLoading.hide()
           if(api.getStatus() === api.STATUS_CONNECTED) {
             $log.debug("connection successful")
+            $ionicLoading.hide()
             if(goBack) {
               $rootScope.$broadcast('bitloxConnectSuccess')
             }
-            $ionicLoading.hide()
           } else {
             $log.debug("connection failed")
             $rootScope.$broadcast('bitloxConnectError')
-            $ionicLoading.hide()
+            popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Connection Error. Try Again.");
           }
-        },1000)
+        },3000)
+      }, function(err) {
+        $log.debug("BitLox Connection Error", err)
+      }).finally(function() {
+
       })
     }
 

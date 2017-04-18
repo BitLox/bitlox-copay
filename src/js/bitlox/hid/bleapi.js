@@ -721,7 +721,7 @@ this.initialize = function() {
 		'deviceready',
     function() {
       // if we've already initialized don't do it again
-      if(bleReady) { 
+      if(bleReady) {
         console.log("ALREADY INITIALIZED, STOPPING")
         return true;
       }
@@ -941,7 +941,7 @@ this.deviceFound = function(device, errorCode)  {
     knownDevices[device.address] = device;
     $rootScope.$applyAsync()
     //this next line goes nuts in logcat. use wisely
-    // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( knownDevices[device.address].address));
+    console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( knownDevices[device.address].address));
 	}
 	else if (errorCode)
 	{
@@ -977,7 +977,7 @@ this.connect = function(address)	{
 				// BleApi.displayStatus('Disconnected');
 				// pausecomp(50);
 				// BleApi.connect(address);
-        return def.reject(new Error('Unable to connect to BitLox BLE'))
+        return def.resolve(new Error('Unable to connect to BitLox BLE'))
 			}
 		},
 		function(errorCode)
@@ -988,7 +988,7 @@ this.connect = function(address)	{
       delete knownDevices[address]
       BleApi.startScanNew();
       if(parseInt(errorCode,10) === 133) {
-        return def.reject(new Error('Unable to maintain connection to BitLox BLE'))
+        return def.resolve(new Error('Unable to maintain connection to BitLox BLE'))
       }
 		});
   return def.promise
@@ -1083,7 +1083,7 @@ this.write = function(data, timer, noPromise) {
       , function(err) {
         // if(platform == "android") {
         //   pausecomp(200);
-        // }        
+        // }
         if(err) {
 
           return next(new Error('Command Write Error'))
@@ -1096,7 +1096,7 @@ this.write = function(data, timer, noPromise) {
       evothings.ble.close(BleApi.deviceHandle)
       status = BleApi.STATUS_DISCONNECTED
       $rootScope.$applyAsync()
-      return currentPromise.reject(new Error('Command Write Error'))      
+      return currentPromise.reject(new Error('Command Write Error'))
     }
     status = BleApi.STATUS_READING
     $rootScope.$applyAsync();
@@ -1114,7 +1114,7 @@ this.write = function(data, timer, noPromise) {
       $rootScope.$applyAsync()
       currentPromise.reject(new Error('Command Write Timeout'))
     },timer)
-  }    
+  }
   return currentPromise.promise;
 };
 /**
@@ -1178,7 +1178,7 @@ this.sendToProcess = function(rawData) {
       // document.getElementById("payload_ASCII").innerHTML = hex2a(payload);
       // console.log('ready to process: ' + dataToSendOut);
       this.processResults(command, payloadSize2, payload);
-    }    
+    }
 	}
 }
 

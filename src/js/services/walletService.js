@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('copayApp.services').factory('walletService', function($rootScope, $log, $timeout, $ionicLoading, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, $ionicPopup, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox, platformInfo, txUtil) {
+angular.module('copayApp.services').factory('walletService', function($rootScope, $log, $timeout, $ionicLoading, lodash, trezor, ledger, storageService, configService, rateService, uxLanguage, $filter, gettextCatalog, bwcError, popupService, fingerprintService, ongoingProcess, gettext, $rootScope, txFormatService, $ionicModal, $state, bwcService, bitcore, popupService, bitlox, platformInfo, txUtil) {
   // `wallet` is a decorated version of client.
 
   var root = {};
@@ -79,8 +79,9 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
             newScope.modal.remove()
           });
           errorListener = newScope.$on('bitloxConnectError', function() {
+            
             // Execute action
-          });          
+          });
       } else {
         _bitloxSend(wallet,txp,cb)
       }
@@ -88,7 +89,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
   function _bitloxSend(wallet,txp,cb) {
     $ionicLoading.show({
       template: 'Check Your BitLox...'
-    });    
+    });
     if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
 
       return cb(new Error("Unable to connect to BitLox"))
@@ -155,7 +156,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                         }, function(err) {
                           return cb(err)
                         })
-                        // return cb(null,txp) 
+                        // return cb(null,txp)
                       })
                     } else {
                       $log.debug('TX parse error', result)
