@@ -1,11 +1,11 @@
 {
-  "packageName": "copay",
+  "packageName": "bitlox",
   "packageDescription": "BitLox Bitcoin Wallet",
   "userVisibleName": "BitLox",
-  "purposeLine": "Copay Bitcoin Wallet",
-  "bundleName": "copay",
-  "appUri": "copay",
-  "name": "copay",
+  "purposeLine": "Bitlox Bitcoin Wallet",
+  "bundleName": "mobilewallet",
+  "appUri": "bitlox",
+  "name": "bitlox",
   "nameNoSpace": "BitLox",
   "nameCase": "BitLox",
   "nameCaseNoSpace": "BitLox",
@@ -25,8 +25,8 @@
   "androidVersion": "303000",
   "_extraCSS": null,
   "_enabledExtensions": {
-    "coinbase": true,
-    "glidera": true,
-    "amazon": true
+    "coinbase": false,
+    "glidera": false,
+    "amazon": false
   }
 }
