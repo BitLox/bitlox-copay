@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.bitlox.*BUNDLENAME*"
+<!-- <widget id="net.projecthunter.*BUNDLENAME*" -->
+<widget id="net.projecthunter"
   version="*VERSION*"
   android-versionCode="*ANDROIDVERSION*"
   ios-CFBundleVersion="*VERSION*">
