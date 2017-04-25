@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.bitpay.*BUNDLENAME*"
+<!-- <widget id="net.projecthunter.*BUNDLENAME*" -->
+<widget id="net.projecthunter"
   version="*VERSION*"
   android-versionCode="*ANDROIDVERSION*"
   ios-CFBundleVersion="*VERSION*">
@@ -7,8 +8,8 @@
     <description>
       *PURPOSELINE*
     </description>
-    <author email="support@bitpay.com" href="*URL*">
-        BitPay Inc.
+    <author email="support@bitlox.com" href="*URL*">
+        Bitlox Ltd.
     </author>
     <content src="index.html" />
     <access origin="*" />
