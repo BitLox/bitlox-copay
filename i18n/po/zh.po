@@ -302,7 +302,7 @@ msgstr "比特币地址"
 
 #: www/views/preferencesFee.html:4
 #: www/views/tab-settings.html:85
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "比特币网络手续费策略"
 
 #: www/views/paymentUri.html:10
@@ -318,7 +318,7 @@ msgid "Bitcoin is a currency."
 msgstr "比特币是一种货币。"
 
 #: www/views/onboarding/disclaimer.html:15
-msgid "Bitcoin is different &ndash; it cannot be safely held with a bank or web service."
+msgid "Funds cannot be safely held with a bank or web service."
 msgstr "比特币是不同 — — 它不能安全地举行以银行或 web 服务。"
 
 #: www/views/onboarding/tour.html:13
@@ -1139,7 +1139,7 @@ msgid "I understand"
 msgstr "我知道了"
 
 #: www/views/onboarding/disclaimer.html:21
-msgid "I understand that if this app is moved to another device or deleted, my bitcoin can only be recovered with the backup phrase."
+msgid "I understand that if this app is moved to another device or deleted, my funds can only be recovered with the backup phrase."
 msgstr "我明白是否这个应用程序是搬到另一个设备或删除，我比特币可以只能进行恢复与备份的短语。"
 
 #: www/views/onboarding/disclaimer.html:18
@@ -1163,7 +1163,7 @@ msgid "If enabled, wallets will also try to spend unconfirmed funds. This option
 msgstr "如果启用了，钱包也尝试使用未经证实的资金。此选项可能会导致事务延迟。"
 
 #: src/js/controllers/onboarding/backupRequest.js:11
-msgid "If this device is replaced or this app is deleted, neither you nor BitPay can recover your funds without a backup."
+msgid "If this device is replaced or this app is deleted, no one can recover your funds without a backup."
 msgstr "如果此设备被替换或删除此应用程序，你和 BitPay 都不可以恢复你的资金，也没有备份。"
 
 #: www/views/feedback/complete.html:23
@@ -1448,7 +1448,7 @@ msgid "No Wallet"
 msgstr "没钱包"
 
 #: www/views/onboarding/backupRequest.html:5
-msgid "No backup, no bitcoin."
+msgid "Backups are mandatory!."
 msgstr "没有备份，没有比特币。"
 
 #: www/views/addressbook.html:19
@@ -2844,7 +2844,7 @@ msgid "Your bitcoin wallet is backed up!"
 msgstr "你的比特币钱包被备份 ！"
 
 #: www/views/tab-home.html:35
-msgid "Your bitcoin wallet is ready!"
+msgid "Your wallet is ready!"
 msgstr "你的比特币钱包是准备好了 ！"
 
 #: www/views/feedback/send.html:42

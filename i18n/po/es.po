@@ -302,7 +302,7 @@ msgstr "Dirección Bitcoin"
 
 #: www/views/preferencesFee.html:4
 #: www/views/tab-settings.html:85
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "Política de Comisión de la Red Bitcoin"
 
 #: www/views/paymentUri.html:10
@@ -318,7 +318,7 @@ msgid "Bitcoin is a currency."
 msgstr "Bitcoin es una moneda."
 
 #: www/views/onboarding/disclaimer.html:15
-msgid "Bitcoin is different &ndash; it cannot be safely held with a bank or web service."
+msgid "Funds cannot be safely held with a bank or web service."
 msgstr "Bitcoin es diferente &ndash; no se puede resguardar con ningún servicio web o banco."
 
 #: www/views/onboarding/tour.html:13
@@ -1139,7 +1139,7 @@ msgid "I understand"
 msgstr "Entiendo"
 
 #: www/views/onboarding/disclaimer.html:21
-msgid "I understand that if this app is moved to another device or deleted, my bitcoin can only be recovered with the backup phrase."
+msgid "I understand that if this app is moved to another device or deleted, my funds can only be recovered with the backup phrase."
 msgstr "Entiendo que si esta aplicación es borrada, mis fondos pueden recuperarse únicamente con la copia de seguridad."
 
 #: www/views/onboarding/disclaimer.html:18
@@ -1163,7 +1163,7 @@ msgid "If enabled, wallets will also try to spend unconfirmed funds. This option
 msgstr "Si se habilita, las billeteras podrán gastar los fondos sin confirmar. Esta opción puede causar demoras en la transacción."
 
 #: src/js/controllers/onboarding/backupRequest.js:11
-msgid "If this device is replaced or this app is deleted, neither you nor BitPay can recover your funds without a backup."
+msgid "If this device is replaced or this app is deleted, no one can recover your funds without a backup."
 msgstr "Si pierdes este dispositivo o esta aplicación es eliminada, ni tú ni BitPay podrán recuperar el dinero."
 
 #: www/views/feedback/complete.html:23
@@ -1448,7 +1448,7 @@ msgid "No Wallet"
 msgstr "Sin billetera"
 
 #: www/views/onboarding/backupRequest.html:5
-msgid "No backup, no bitcoin."
+msgid "Backups are mandatory!."
 msgstr "Sin copia de seguridad, no hay bitcoins."
 
 #: www/views/addressbook.html:19
@@ -2844,7 +2844,7 @@ msgid "Your bitcoin wallet is backed up!"
 msgstr "¡Su billetera bitcoin está resguardada!"
 
 #: www/views/tab-home.html:35
-msgid "Your bitcoin wallet is ready!"
+msgid "Your wallet is ready!"
 msgstr "¡Su billetera bitcoin está lista!"
 
 #: www/views/feedback/send.html:42

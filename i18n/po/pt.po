@@ -205,8 +205,8 @@ msgid "Bitcoin address"
 msgstr "Endereço Bitcoin"
 
 #: www/views/preferences.html
-msgid "Bitcoin Network Fee Policy"
-msgstr "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
+msgstr "Network Fee Policy"
 
 #: www/views/preferencesFee.html
 msgid "Bitcoin transactions may include a fee collected by miners on the network. The higher the fee, the greater the incentive a miner has to include that transaction in a block. Actual fees are determined based on network load and the selected policy."

@@ -248,7 +248,7 @@ msgid "Bitcoin address"
 msgstr "Διεύθυνση Bitcoin"
 
 #: www/views/preferencesGlobal.html
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "Πολιτική Χρέωσης Δικτύου Bitcoin"
 
 #: www/views/preferencesFee.html

@@ -226,7 +226,7 @@ msgid "Bitcoin address"
 msgstr "Bitcoin adresi"
 
 #: www/views/preferences.html
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "Bitcoin ağ ücret politikası"
 
 #: www/views/preferencesFee.html

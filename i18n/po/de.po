@@ -302,7 +302,7 @@ msgstr "Bitcoin-Adresse"
 
 #: www/views/preferencesFee.html:4
 #: www/views/tab-settings.html:85
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "Bitcoin-Netzwerk Gebührenübersicht"
 
 #: www/views/paymentUri.html:10
@@ -318,7 +318,7 @@ msgid "Bitcoin is a currency."
 msgstr "Bitcoin ist eine Währung."
 
 #: www/views/onboarding/disclaimer.html:15
-msgid "Bitcoin is different &ndash; it cannot be safely held with a bank or web service."
+msgid "Funds cannot be safely held with a bank or web service."
 msgstr "Bitcoins sind anders &ndash; sie können nicht sicher in einer Bank oder einem Onlinedienst aufbewahrt werden."
 
 #: www/views/onboarding/tour.html:13
@@ -1139,7 +1139,7 @@ msgid "I understand"
 msgstr "Ich verstehe"
 
 #: www/views/onboarding/disclaimer.html:21
-msgid "I understand that if this app is moved to another device or deleted, my bitcoin can only be recovered with the backup phrase."
+msgid "I understand that if this app is moved to another device or deleted, my funds can only be recovered with the backup phrase."
 msgstr "Ich verstehe dass wenn diese App auf ein anderes Gerät verschoben oder gelöscht wird meine Bitcoins nur mit der Wiederherstellungsphrase wiederhergestellt werden können."
 
 #: www/views/onboarding/disclaimer.html:18
@@ -1163,7 +1163,7 @@ msgid "If enabled, wallets will also try to spend unconfirmed funds. This option
 msgstr "Wenn aktiviert werden Wallets auch versuchen unbestätigtes Vermögen auszugeben. Diese Option kann zu Transaktionsverzögerungen führen."
 
 #: src/js/controllers/onboarding/backupRequest.js:11
-msgid "If this device is replaced or this app is deleted, neither you nor BitPay can recover your funds without a backup."
+msgid "If this device is replaced or this app is deleted, no one can recover your funds without a backup."
 msgstr "Wenn dieses Gerät ersetzt oder diese App gelöscht wird, so können weder Sie noch BitPay Ihr Geld ohne eine Sicherung wiederherstellen."
 
 #: www/views/feedback/complete.html:23
@@ -1448,7 +1448,7 @@ msgid "No Wallet"
 msgstr "Keine Wallet"
 
 #: www/views/onboarding/backupRequest.html:5
-msgid "No backup, no bitcoin."
+msgid "Backups are mandatory!."
 msgstr "Keine Sicherung, keine Bitcoins."
 
 #: www/views/addressbook.html:19
@@ -2844,7 +2844,7 @@ msgid "Your bitcoin wallet is backed up!"
 msgstr "Ihre Bitcoin-Wallet wurde gesichert!"
 
 #: www/views/tab-home.html:35
-msgid "Your bitcoin wallet is ready!"
+msgid "Your wallet is ready!"
 msgstr "Ihre Bitcoin-Wallet ist fertig!"
 
 #: www/views/feedback/send.html:42

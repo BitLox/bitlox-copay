@@ -304,7 +304,7 @@ msgstr "ビットコインアドレス"
 
 #: www/views/preferencesFee.html:4
 #: www/views/tab-settings.html:85
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "ビットコインネットワークの手数料設定"
 
 #: www/views/paymentUri.html:10
@@ -320,7 +320,7 @@ msgid "Bitcoin is a currency."
 msgstr "ビットコインは通貨の一つです。"
 
 #: www/views/onboarding/disclaimer.html:15
-msgid "Bitcoin is different &ndash; it cannot be safely held with a bank or web service."
+msgid "Funds cannot be safely held with a bank or web service."
 msgstr "ビットコインは違う &ndash; 銀行やウェブのサービスに安全に預けることはできません。"
 
 #: www/views/onboarding/tour.html:13
@@ -1141,7 +1141,7 @@ msgid "I understand"
 msgstr "承知しました"
 
 #: www/views/onboarding/disclaimer.html:21
-msgid "I understand that if this app is moved to another device or deleted, my bitcoin can only be recovered with the backup phrase."
+msgid "I understand that if this app is moved to another device or deleted, my funds can only be recovered with the backup phrase."
 msgstr "このアプリが別の端末に移動されたり、削除されたりした場合に、含まれたビットコインが復元フレーズからのみ復元ができることを理解しています。"
 
 #: www/views/onboarding/disclaimer.html:18
@@ -1165,7 +1165,7 @@ msgid "If enabled, wallets will also try to spend unconfirmed funds. This option
 msgstr "有効にした場合、ウォレットは未承認ビットコインも送金時の候補に含めます。これを有効にした場合、承認に時間がかかることがあります。"
 
 #: src/js/controllers/onboarding/backupRequest.js:11
-msgid "If this device is replaced or this app is deleted, neither you nor BitPay can recover your funds without a backup."
+msgid "If this device is replaced or this app is deleted, no one can recover your funds without a backup."
 msgstr "この端末の機種変更をしたり、アプリを削除したりした場合、端末のバックアップを取っていてもビットコインは復元されません。BitPayは復元フレーズを知らないため、お金を失ったことになります。なので、絶対に復元フレーズを書き留めて安全な場所に保管して下さい。"
 
 #: www/views/feedback/complete.html:23
@@ -1450,7 +1450,7 @@ msgid "No Wallet"
 msgstr "ウォレットが無いよ…(´・ω・`)"
 
 #: www/views/onboarding/backupRequest.html:5
-msgid "No backup, no bitcoin."
+msgid "Backups are mandatory!."
 msgstr "No バックアップ, No ビットコイン"
 
 #: www/views/addressbook.html:19
@@ -2848,7 +2848,7 @@ msgid "Your bitcoin wallet is backed up!"
 msgstr "ビットコインウォレットがバックアップされました!"
 
 #: www/views/tab-home.html:35
-msgid "Your bitcoin wallet is ready!"
+msgid "Your wallet is ready!"
 msgstr "ビットコインウォレットが完成しました!"
 
 #: www/views/feedback/send.html:42

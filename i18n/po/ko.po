@@ -205,7 +205,7 @@ msgid "Bitcoin address"
 msgstr "비트코인 주소"
 
 #: www/views/preferences.html
-msgid "Bitcoin Network Fee Policy"
+msgid "Network Fee Policy"
 msgstr "비트코인 네트워크 수수료 설정"
 
 #: www/views/preferencesFee.html
