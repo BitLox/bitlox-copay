@@ -60,7 +60,7 @@
         api.startScanNew();
         setTimeout(function() {
           api.stopScan();
-        },5000)
+        },15000)
       }
     }
     $scope.connectBle = function(address, goBack) {

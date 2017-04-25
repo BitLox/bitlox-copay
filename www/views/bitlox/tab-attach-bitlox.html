@@ -1,12 +1,19 @@
-<ion-view id="view-attach-bitlox">
+<ion-view id="tab-home">
   <ion-nav-bar class="bar-royal">
     <ion-nav-title>Attach a BitLox</ion-nav-title>
     <ion-nav-back-button>
     </ion-nav-back-button>
   </ion-nav-bar>
 
-  <ion-content>
+  <ion-content ng-controller="WalletCtrl as vm" >
+    <ion-refresher
+     ng-if="bitlox.connected"
+     pulling-icon="ion-ios-refresh"
+     spinner="ios-small"
+     on-refresh="vm.listWallets()">
+    </ion-refresher>
     <div ng-controller="BitLoxCtrl">
+
       <div ng-hide="bitlox.connected || !bitlox.connectAttempted" ng-if="!bitlox.isMobile">
           <h2>
               No BitLox device detected.<br />
@@ -14,37 +21,27 @@
               <a href ng-click="refreshBitlox()">click here to try again.</a>
           </h2>
       </div>
-      <div ng-show="wallet.status">
-          <span class="glyphicon"
-                ng-class="wallet.glyph"></span>
-          {{wallet.status}}
+      <div class="list card"  ng-show="bitlox.isMobile && !bitlox.connected">
+        <a class="item item-remove-animate" ng-click="refreshBitlox($event)">
+          <span  ng-if="api.getNumDevices() < 1">No devices found - </span>Pull to refresh
+        </a>
+        <a ng-repeat="device in api.getKnownDevices()"
+           ng-click="connectBle(device.address, false)"
+           class="item item-sub item-icon-left item-big-icon-left item-icon-right wallet">
+          {{device.name}}
+          <pre>{{device}}</pre>
+        </a>
+        <button ng-if="closeModal" class="button icon icon-left ion-ios-close-outline"
+           ng-click = "closeModal()">Cancel</button>
       </div>
-      <div ng-show="bitlox.isMobile && !bitlox.connected">
-        <h2>BLE Connection</h2>
-        <h2>Select Device</h2>
-        <ion-list>
-          <a
-                class="item item-remove-animate" ng-click="refreshBitlox($event)">
-            <span  ng-if="api.getNumDevices() < 1">No devices found - </span>Tap to refresh
-          </a>
-          <a ng-repeat="device in api.getKnownDevices()"
-             ng-click="connectBle(device.address, false)"
-                class="item item-remove-animate">
-            {{device.name}}
-            <!-- <pre>{{device}}</pre> -->
-          </a>
-
-        </ion-list>
-      </div>
-      <div  ng-controller="WalletCtrl as vm"
+      <div
         ng-show="bitlox.connected">
         <h3 ng-show="vm.readingWallets">Loading wallets</h3>
 
-        <ion-list ng-show="!vm.readingWallets">
-
-          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="createToggle = !createToggle">
+        <div class="list card"  ng-show="!vm.readingWallets">
+          <a class="item item-icon-left item-big-icon-left item-icon-right next-step" type="item-text-wrap" ng-click="createToggle = !createToggle">
             <i class="icon big-icon-svg">
-              <img src="img/icon-wallet.svg" class="bg"/>
+              <img src="img/icon-wallet.svg" class="bg wallet icon-create-wallet"/>
             </i>
             <span class="add-type" translate>Create/Restore Wallet</span>
             <i class="icon bp-arrow-right"></i>
@@ -53,7 +50,7 @@
             <wallet-create available-numbers="vm.availableWalletNumbers"
                            on-finish="vm.onCreateFinished()"></wallet-create>
           </div>
-          <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="ping()">
+          <!-- <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="ping()">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg"/>
             </i>
@@ -66,30 +63,19 @@
             </i>
             <span class="add-type" translate>ENTROPY 1024</span>
             <i class="icon bp-arrow-right"></i>
-          </a>
+          </a> -->
           <a ng-repeat="wallet in vm.wallets"
                 ng-click="vm.loadWallet(wallet)"
                 ng-disabled="vm.openWallet.number == wallet.number"
-                class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left">
-            #{{wallet.number}}&nbsp;&nbsp;
-            <span class="glyphicon glyphicon-lock"
-                  ng-if="wallet.isSecure">&nbsp;</span>{{wallet.name}}
-            <span ng-if="vm.openingWallet == wallet.number && vm.loadingXpub"
-                  class="pull-right">Check BitLox</span>
-            <span ng-if="vm.openWallet.number == wallet.number"
-                  class="pull-right">
-                <span ng-hide="vm.openWallet.updatingBalance"
-                      bc-val="vm.openWallet.balance"></span>
-                <span ng-show="!vm.openWallet.updatingBalance && vm.openWallet.unconfirmedBalance">
-                    (<span bc-val="vm.openWallet.unconfirmedBalance"></span> unconfirmed)
-                </span>
-                <span ng-show="vm.openWallet.updatingBalance">
-                    Updating
-                </span>
-            </span>
+                class="item item-sub item-icon-left item-big-icon-left item-icon-right wallet">
+
+            <i class="icon big-icon-svg">
+              <img src="img/icon-wallet.svg" ng-class="{'wallet-background-color-default': !wallet.color}" ng-style="{'background-color': wallet.color}" class="bg wallet"/>
+            </i>
+            #{{wallet.number}}&nbsp;&nbsp;{{wallet.name}}
           </a>
 
-        </ion-list>
+        </div>
       </div>
     </div>
   </ion-content>
