@@ -272,7 +272,7 @@
             });
         };
 
-        Wallet.prototype.open = function() {
+        Wallet.prototype.open = function(skipBip32) {
             var wallet = this;
             WalletStatus.status = WalletStatus.STATUS_LOADING;
             var deferred = $q.defer();
@@ -285,6 +285,9 @@
                 wallet.unlocked = true;
                 // now that is is open, get the bip32 key for the
                 // current wallet
+                if(skipBip32) {
+                  return deferred.resolve(wallet)
+                }
                 return Wallet.getBip32(wallet).then(function() {
                     // wallet.loadTransactions(); // dave says, we don't need this anymore
                     return deferred.resolve(wallet);

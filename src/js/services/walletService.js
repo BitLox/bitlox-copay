@@ -88,7 +88,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
   }
   function _bitloxSend(wallet,txp,cb) {
     $ionicLoading.show({
-      template: 'Check Your BitLox...'
+      template: 'Connecting to BitLox...'
     });
     if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
 
@@ -124,31 +124,42 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
       if(bitloxInfo[1] !== results.payload.device_uuid.toString('hex')) {
         return cb(new Error('This wallet is not on the connected BitLox device or has been moved. Select the correct Bitlox or contact support.'))
       }
-      $log.debug(bitloxInfo)
+      $ionicLoading.show({
+        template: 'Opening Wallet. Check Your BitLox...'
+      });
+
       return bitlox.wallet.list()
       .then(function(wallets) {
         for(var i=0; i<wallets.length;i++) {
           thisWallet = wallets[i]
 
           if(thisWallet._uuid.toString("hex") === bitloxInfo[2]) {
-            return thisWallet.open()
+            return thisWallet.open(true)
             .then(function() {
                 $log.debug("WALLET LOADED", thisWallet.xpub)
-
-                if(thisWallet.xpub !== xPubKeys[0]) {
-                  $log.debug('pubkeys do not match')
-                  return cb(new Error('pubkeys do not match'))
-                }
+                $ionicLoading.show({
+                  template: 'Preparing Transaction. Please Wait...'
+                });
+                // if(thisWallet.xpub !== xPubKeys[0]) {
+                //   $log.debug('pubkeys do not match')
+                //   return cb(new Error('pubkeys do not match'))
+                // }
                 var changeIndex = txp.changeAddress.path.split('/')[2]
                 $log.debug('changeIndex', changeIndex)
                 return bitlox.api.setChangeAddress(changeIndex).then(function() {
                   $log.debug('Done setting change address')
+                  $ionicLoading.show({
+                    template: 'Signing Transactions. Check Your BitLox...'
+                  });
                   return bitlox.api.signTransaction(tx)
                   .then(function(result) {
                     $log.debug('Bitlox response', result);
                     if(result.type === bitlox.api.TYPE_SIGNATURE_RETURN) {
                       txp.signatures = result.payload.signedScripts;
                       tx.replaceScripts(txp.signatures)
+                      $ionicLoading.show({
+                        template: 'Broadcasting Transaction. Please Wait...'
+                      });
                       return root.removeTx(wallet, txp, function() {
                         // comment out thes 5 lines and send `return cb(null,txp) to skip broadcast`
                         return txUtil.submit(tx.signedHex).then(function() {
