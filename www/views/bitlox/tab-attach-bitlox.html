@@ -15,11 +15,11 @@
     <div ng-controller="BitLoxCtrl">
 
       <div ng-hide="bitlox.connected || !bitlox.connectAttempted" ng-if="!bitlox.isMobile">
-          <h2>
+          <h4>
               No BitLox device detected.<br />
               Please connect your BitLox and
               <a href ng-click="refreshBitlox()">click here to try again.</a>
-          </h2>
+          </h4>
       </div>
       <div class="list card"  ng-show="bitlox.isMobile && !bitlox.connected">
         <a class="item item-remove-animate" ng-click="refreshBitlox($event)">
@@ -36,23 +36,23 @@
       </div>
       <div
         ng-show="bitlox.connected">
-        <h3 ng-show="vm.readingWallets">Loading wallets</h3>
+        <!-- <h3 ng-show="vm.readingWallets">Loading wallets</h3> -->
 
         <div class="list card"  ng-show="!vm.readingWallets">
           <a
           style="padding-top: 2rem; padding-bottom: 2rem"
           class="item item-sub item-icon-left item-big-icon-left item-icon-right wallet"
-          type="item-text-wrap" ng-click="createToggle = !createToggle">
+          type="item-text-wrap" ui-sref="tabs.add.create-bitlox">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg wallet icon-create-wallet"/>
             </i>
-            <span class="add-type" translate>Create/Restore Wallet</span>
+            <span class="add-type" translate>Create/Restore BitLox Wallet</span>
             <i class="icon bp-arrow-right"></i>
           </a>
-          <div class="item" ng-show="createToggle">
+          <!-- <div class="item" ng-show="createToggle">
             <wallet-create available-numbers="vm.availableWalletNumbers"
                            on-finish="vm.onCreateFinished()"></wallet-create>
-          </div>
+          </div> -->
           <!-- <a class="item item-remove-animate item-icon-right item-icon-left item-big-icon-left" type="item-text-wrap" ng-click="ping()">
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg"/>

@@ -46,7 +46,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
         var newScope = $rootScope.$new();
         var successListener;
         var errorListener
-        $ionicModal.fromTemplateUrl('views/bitlox/tab-attach-bitlox-modal.html', {
+        $ionicModal.fromTemplateUrl('views/bitlox/tab-attach-bitlox.html', {
             scope: newScope,
             animation: 'slide-in-up',
             hardwareBackButtonClose: false
@@ -79,7 +79,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
             newScope.modal.remove()
           });
           errorListener = newScope.$on('bitloxConnectError', function() {
-            
+
             // Execute action
           });
       } else {

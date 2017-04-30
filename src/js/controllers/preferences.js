@@ -90,7 +90,13 @@ angular.module('copayApp.controllers').controller('preferencesController',
       };
 
       if (wallet.isPrivKeyExternal)
-        $scope.externalSource = wallet.getPrivKeyExternalSourceName() == 'ledger' ? 'Ledger' : 'Trezor';
+        $scope.externalSource = "Trezor";
+        if(wallet.getPrivKeyExternalSourceName() == 'ledger') {
+          $scope.externalSource = 'Ledger'
+        } else if(wallet.getPrivKeyExternalSourceName().indexOf('bitlox') === 0) {
+          $scope.externalSource = "BitLox";
+        }
+      // console.log(wallet.getPrivKeyExternalSourceName())
 
       $scope.touchIdAvailable = fingerprintService.isAvailable();
       $scope.touchIdEnabled = {

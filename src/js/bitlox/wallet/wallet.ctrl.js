@@ -4,9 +4,9 @@
     angular.module('app.wallet')
         .controller('WalletCtrl', WalletCtrl);
 
-    WalletCtrl.$inject = ['$scope','$log', '$state', '$stateParams', '$timeout', '$ionicLoading', 'MAX_WALLETS', 'bitloxWallet', 'Toast', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'platformInfo'];
+    WalletCtrl.$inject = ['$scope', '$rootScope', '$log', '$state', '$stateParams', '$timeout', '$ionicPopup', '$ionicModal', '$ionicLoading', 'MAX_WALLETS', 'bitloxWallet', 'Toast', 'bitloxHidChrome', 'bitloxHidWeb', 'bitloxBleApi', '$ionicHistory', 'profileService',  'ongoingProcess', 'walletService', 'popupService', 'gettextCatalog', 'derivationPathHelper', 'bwcService', 'platformInfo'];
 
-    function WalletCtrl($scope, $log, $state, $stateParams, $timeout, $ionicLoading, MAX_WALLETS, bitloxWallet, Toast, hidchrome, hidweb, bleapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, platformInfo) {
+    function WalletCtrl($scope, $rootScope,  $log, $state, $stateParams, $timeout, $ionicPopup, $ionicModal, $ionicLoading, MAX_WALLETS, bitloxWallet, Toast, hidchrome, hidweb, bleapi, $ionicHistory, profileService, ongoingProcess, walletService, popupService, gettextCatalog, derivationPathHelper, bwcService, platformInfo) {
         var vm = this;
         var api = hidweb;
         if (platformInfo.isChromeApp) {
@@ -17,15 +17,58 @@
         }
         $scope.api = api;
 
-        vm.onCreateFinished = function(res) {
-          $scope.createToggle = false
-          $timeout(vm.readWallets.bind(vm), 100)
-          wallet.getBip32().then(function() {
-            $timeout(vm.readWallets.bind(vm), 1000).then(function() {
-              _importExtendedPublicKey(wallet)
+        vm.createWallet = function() {
+            $ionicLoading.show({template: "Creating Wallet, Check Your BitLox"})
+            vm.creatingWallet = true;
+            bitloxWallet.create(vm.newWallet.number, vm.newWallet).then(function(res) {
+
+              $ionicLoading.hide()
+
+              $timeout(vm.readWallets.bind(vm), 100)
+              bitloxWallet.getBip32().then(function() {
+                $timeout(vm.readWallets.bind(vm), 1000).then(function() {
+                  _importExtendedPublicKey(wallet)
+                });
+              })
+
+            }, function() {
+              $ionicLoading.hide()
+            }).finally(function(res) {
+                // reset();
+                vm.creatingWallet = false;
             });
-          })
+        };
+
+
+        vm.updateWordNumbers = function() {
+            if (!vm.userWords) {
+                return;
+            }
+            var words = vm.userWords.split(/\s+/);
+            var numbers = [];
+            for (var i = 0; i < words.length; i++) {
+                var word = words[i];
+                var wordIndex = wordlist.indexOf(word);
+                if (wordIndex < 0) {
+                    numbers[i] = "INVALID WORD";
+                } else {
+                    numbers[i] = wordIndex;
+                }
+            }
+            vm.wordIndexes = numbers;
+        };
+
+        vm.reset = function() {
+            vm.newWallet = {
+                name: "Wallet",
+                number: 0,
+                isSecure: true,
+                isHidden: false,
+                isRestore: false,
+            };
         }
+        vm.reset()
+
 
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
@@ -53,7 +96,7 @@
             opts.network = true
             opts.bwsurl = 'https://bws.bitpay.com/bws/api'
             $ionicLoading.show({
-              template: 'Importing BitLox Wallet...'
+              template: 'Importing BitLox wallet...'
             });
             // console.warn("START IMPORTING")
             profileService.importExtendedPublicKey(opts, function(err, walletId) {
@@ -67,7 +110,7 @@
 
 
               walletService.updateRemotePreferences(walletId);
-              $ionicHistory.goBack(-2);
+              $ionicHistory.goBack(-3);
 
             });
           }).catch(function(e) {
@@ -89,23 +132,37 @@
           })
         }
         vm.readWallets = function() {
+          $ionicLoading.show({template: "Connecting to BitLox, please wait..."})
             vm.readingWallets = true;
             return bitloxWallet.list()
                 .then(function(wallets) {
                     vm.wallets = wallets;
                     vm.openWallet = null;
-                    refreshAvailableNumbers(wallets);
+                    vm.refreshAvailableNumbers(wallets);
+
                 }, Toast.errorHandler)
                 .finally(function() {
+                    $ionicLoading.hide()
                     vm.readingWallets = false;
                 });
         };
 
         vm.loadWallet = function(wallet) {
+
+          $ionicPopup.confirm({
+            title: "Import BitLox Wallet #"+wallet.number,
+            subTitle: "Are you sure you want to import '"+ wallet.name +"'?",
+            cancelText: "Cancel",
+            cancelType: 'button-clear button-positive',
+            okText: "Yes, Import",
+            okType: 'button-clear button-positive'
+          }).then(function(res) {
+            if(!res) { return false; }
+
             vm.openWallet = null;
             vm.loadingXpub = true;
             $ionicLoading.show({
-                  template: 'Connecting to Bitlox...'
+                  template: 'Opening Wallet. Check your BitLox...'
                 });            // console.debug("loading wallet", wallet.number);
             vm.openingWallet = wallet.number;
             wallet.open()
@@ -125,6 +182,7 @@
                     vm.openingWallet = -99;
                     $ionicLoading.hide()
                 });
+          });
         };
 
         vm.directOpenNumber = 0;
@@ -155,7 +213,7 @@
         };
 
 
-        function refreshAvailableNumbers(wallets) {
+        vm.refreshAvailableNumbers = function(wallets) {
             if (!wallets) {
                 return;
             }
@@ -171,6 +229,11 @@
             });
             // set to the vm for the new wallet form
             vm.availableWalletNumbers = available;
+            if (available && available.length) {
+                // also set some default values for that form
+                vm.newWallet.name = "Wallet " + available[0];
+                vm.newWallet.number = available[0];
+            }
         }
 
         function reset() {
@@ -184,9 +247,7 @@
             vm.openWallet = null;
             // read after a timeout, so angular does not hang and show
             // garbage while the browser is locked form readin the device
-            if(!$stateParams.connectOnly)        {
-              $timeout(vm.readWallets.bind(vm), 100);
-            }
+            $timeout(vm.readWallets.bind(vm), 100);
         }
 
 
