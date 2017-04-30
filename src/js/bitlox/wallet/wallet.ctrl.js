@@ -150,8 +150,8 @@
         vm.loadWallet = function(wallet) {
 
           $ionicPopup.confirm({
-            title: "Import BitLox Wallet #"+wallet.number,
-            subTitle: "Are you sure you want to import '"+ wallet.name +"'?",
+            title: "Link BitLox Wallet #"+wallet.number,
+            subTitle: "Are you sure you want to link '"+ wallet.name +"'?",
             cancelText: "Cancel",
             cancelType: 'button-clear button-positive',
             okText: "Yes, Import",
