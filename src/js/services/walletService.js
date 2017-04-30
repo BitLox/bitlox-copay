@@ -1143,6 +1143,12 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
           $ionicLoading.hide()
           ongoingProcess.set('signingTx', false, customStatusHandler);
+          if (wallet.isPrivKeyExternal()) {
+            var externalSource = wallet.getPrivKeyExternalSourceName()
+            if(externalSource.indexOf('bitlox') === 0) {
+              ongoingProcess.set('broadcastingTx', false, customStatusHandler); // just tells the UI we are done
+            }
+          }
           root.invalidateCache(wallet);
 
 

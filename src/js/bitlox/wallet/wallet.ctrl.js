@@ -89,7 +89,7 @@
             opts.entropySource = x.publicKey.toString(); //"40c13cfdbafeccc47b4685d6e7f6a27c";
             opts.account = wallet.number;
             opts.networkName = 'livenet';
-            opts.m = 2;
+            opts.m = 1;
             opts.n = 1;
             opts.singleAddress = false;
 
