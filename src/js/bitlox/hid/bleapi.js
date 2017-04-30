@@ -942,7 +942,7 @@ this.deviceFound = function(device, errorCode)  {
     knownDevices[device.address] = device;
     $rootScope.$applyAsync()
     //this next line goes nuts in logcat. use wisely
-    console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( knownDevices[device.address].address));
+    // console.warn("BITLOX FOUND A BLE DEVICE: "+ JSON.stringify( knownDevices[device.address].address));
 	}
 	else if (errorCode)
 	{
