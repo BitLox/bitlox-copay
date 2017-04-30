@@ -71,7 +71,7 @@
       api.connect(address).then(function() {
         setTimeout(function() {
           $ionicLoading.hide()
-          if(api.getStatus() === api.STATUS_CONNECTED) {
+          if(api.getStatus() !== api.STATUS_DISCONNECTED) {
             $log.debug("connection successful")
             if(goBack) {
               $rootScope.$broadcast('bitloxConnectSuccess')
@@ -81,7 +81,7 @@
             $rootScope.$broadcast('bitloxConnectError')
             popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Connection Error. Try Again.");
           }
-        },6000)
+        },4000)
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
       }).finally(function() {

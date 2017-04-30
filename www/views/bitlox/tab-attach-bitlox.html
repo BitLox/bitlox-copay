@@ -6,12 +6,6 @@
   </ion-nav-bar>
 
   <ion-content ng-controller="WalletCtrl as vm" >
-    <ion-refresher
-     ng-if="bitlox.connected"
-     pulling-icon="ion-ios-refresh"
-     spinner="ios-small"
-     on-refresh="vm.listWallets()">
-    </ion-refresher>
     <div ng-controller="BitLoxCtrl">
 
       <div ng-hide="bitlox.connected || !bitlox.connectAttempted" ng-if="!bitlox.isMobile">
@@ -27,8 +21,13 @@
         </a>
         <a ng-repeat="device in api.getKnownDevices()"
            ng-click="connectBle(device.address, false)"
+           style="padding-top: 2rem; padding-bottom: 2rem"
            class="item item-sub item-icon-left item-big-icon-left item-icon-right wallet">
-          {{device.name}}
+           <i class="icon big-icon-svg">
+             <img src="img/icon-wallet-bitlox.svg" class="bg wallet icon-create-wallet"/>
+           </i>
+          <span>{{device.name}}</span>
+          <i class="icon bp-arrow-right"></i>
           <!-- <pre>{{device}}</pre> -->
         </a>
         <button ng-if="closeModal" class="button icon icon-left ion-ios-close-outline"

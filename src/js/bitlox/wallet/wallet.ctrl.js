@@ -148,6 +148,9 @@
         vm.readWallets = function() {
           $ionicLoading.show({template: "Connecting to BitLox, please wait..."})
             vm.readingWallets = true;
+            setTimeout(function() {
+              $ionicLoading.hide();
+            },10000)
             return bitloxWallet.list()
                 .then(function(wallets) {
                     vm.wallets = wallets;
