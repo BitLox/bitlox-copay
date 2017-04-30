@@ -525,7 +525,7 @@ angular.module('copayApp.controllers').controller('confirmController', function(
     if (
       (
         processName === 'broadcastingTx' ||
-        ((processName === 'signingTx') && $scope.wallet.m > 1) ||
+        processName === 'signingTx' ||
         (processName == 'sendingTx' && !$scope.wallet.canSign() && !$scope.wallet.isPrivKeyExternal())
       ) && !isOn) {
       $scope.sendStatus = 'success';
