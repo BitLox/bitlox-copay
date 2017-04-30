@@ -88,8 +88,14 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
   }
   function _bitloxSend(wallet,txp,cb) {
     $ionicLoading.show({
-      template: 'Connecting to BitLox...'
+      template: 'Connecting to BitLox, Please Wait...'
     });
+    var connectTimer;
+    if(platformInfo.isChromeApp) {
+      connectTimer = setTimeout(function() {
+        cb(new Error("Unable to connect to BitLox"))
+      },20000);
+    }
     if(platformInfo.isMobile && bitlox.api.getStatus() !== bitlox.api.STATUS_IDLE && bitlox.api.getStatus() !== bitlox.api.STATUS_CONNECTED) {
 
       return cb(new Error("Unable to connect to BitLox"))
@@ -119,6 +125,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
     $log.debug('xPubKeys', xPubKeys)
 
     return bitlox.api.getDeviceUUID().then(function(results) {
+      if(platformInfo.isChromeApp) { clearTimeout(connectTimer) }
       var externalSource = wallet.getPrivKeyExternalSourceName()
       var bitloxInfo = externalSource.split('/')
       if(bitloxInfo[1] !== results.payload.device_uuid.toString('hex')) {
@@ -183,6 +190,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                 })
             }, function(err) {
               $log.debug('load wallet error', err)
+              return cb(err)
             })
           }
         }
@@ -194,6 +202,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
       })
     }, function(e) {
       $log.debug('cannot get device uuid', e)
+      if(platformInfo.isChromeApp) { clearTimeout(connectTimer) }
       return cb(e)
     })
   }

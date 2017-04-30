@@ -350,7 +350,7 @@ angular.module('copayApp').config(function(historicLogProvider, $provide, $logPr
       .state('tabs.add.create-bitlox', {
         url: '/create-bitlox',
         params: {
-          connectOnly: null
+          createWallet: true
         },
         views: {
           'tab-home@tabs': {

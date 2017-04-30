@@ -505,7 +505,7 @@
     };
     HidAPI.prototype.getDeviceUUID = function() {
         return this._doCommand(this.commands.get_device_uuid, this.TYPE_UUID);
-    };    
+    };
 
     HidAPI.prototype.listWallets = function() {
         return this._doCommand(this.commands.list_wallets, this.TYPE_WALLET_LIST);
@@ -586,7 +586,7 @@
             input.chain = parseInt(inputPath[1],10)
             input.chainIndex = parseInt(inputPath[2],10)
 
-            console.log(inputPath)            
+            console.log(inputPath)
 
             var handler = hidapi.makeAddressHandler(input.chain, input.chainIndex);
             // add to the handler array
@@ -606,7 +606,7 @@
                 return deferred.reject(err);
             }
             // console.log(inputData)
-            
+
             var dataString = '00';
             dataString += opts.unsignedHex
             // console.warn("raw="+opts.unsignedHex)
@@ -624,7 +624,7 @@
             var cmd = hidapi.makeCommand(hidapi.commands.signTxPrefix, txMessage);
             // console.log('sending')
             // console.log(cmd)
-            hidapi._doCommand(cmd, hidapi.TYPE_SIGNATURE_RETURN).then(deferred.resolve, deferred.reject);
+            hidapi._doCommand(cmd, hidapi.TYPE_SIGNATURE_RETURN).then(deferred.resolve, deferred.resolve);
         });
         return deferred.promise;
     };

@@ -5,10 +5,12 @@
     </ion-nav-back-button>
   </ion-nav-bar>
 
+
   <ion-content ng-controller="WalletCtrl as vm" >
+    <br /><br />
     <div ng-controller="BitLoxCtrl">
 
-      <div ng-hide="bitlox.connected || !bitlox.connectAttempted" ng-if="!bitlox.isMobile">
+      <div ng-hide="bitlox.connected || bitlox.isMobile" ng-if="!bitlox.isMobile">
           <h4>
               No BitLox device detected.<br />
               Please connect your BitLox and
@@ -30,7 +32,7 @@
           <i class="icon bp-arrow-right"></i>
           <!-- <pre>{{device}}</pre> -->
         </a>
-        <button ng-if="closeModal" class="button icon icon-left ion-ios-close-outline"
+        <button ng-if="closeModal" style="width:100%" class="button icon icon-left ion-ios-close-outline"
            ng-click = "closeModal()">Cancel</button>
       </div>
       <div

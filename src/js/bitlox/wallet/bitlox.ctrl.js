@@ -61,7 +61,7 @@
         },60000)
       }
     }
-    $scope.connectBle = function(address, goBack) {
+    $scope.connectBle = function(address) {
       $ionicLoading.show({
             template: 'Connecting to BitLox, Please Wait...'
           });
@@ -71,9 +71,7 @@
           $ionicLoading.hide()
           if(api.getStatus() !== api.STATUS_DISCONNECTED) {
             $log.debug("connection successful")
-            if(goBack) {
-              $rootScope.$broadcast('bitloxConnectSuccess')
-            }
+            $rootScope.$broadcast('bitloxConnectSuccess')
           } else {
             $log.debug("connection failed")
             $rootScope.$broadcast('bitloxConnectError')

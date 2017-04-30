@@ -988,8 +988,14 @@ this.connect = function(address)	{
 			BleApi.displayStatus('connect: ' + errorCode);
       delete knownDevices[address]
       BleApi.startScanNew();
+
       if(parseInt(errorCode,10) === 133) {
         return def.resolve(new Error('Unable to maintain connection to BitLox BLE'))
+      }
+      if(parseInt(errorCode,10) === 8) {
+        if(currentPromise) {
+          BleApi.sendError(BleApi.TYPE_ERROR, {})
+        }
       }
 		});
   return def.promise
