@@ -134,22 +134,22 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
           thisWallet = wallets[i]
 
           if(thisWallet._uuid.toString("hex") === bitloxInfo[2]) {
-            return thisWallet.open(true)
+            return thisWallet.open()
             .then(function() {
                 $log.debug("WALLET LOADED", thisWallet.xpub)
                 $ionicLoading.show({
                   template: 'Preparing Transaction. Please Wait...'
                 });
-                // if(thisWallet.xpub !== xPubKeys[0]) {
-                //   $log.debug('pubkeys do not match')
-                //   return cb(new Error('pubkeys do not match'))
-                // }
+                if(thisWallet.xpub !== xPubKeys[0]) {
+                  $log.debug('pubkeys do not match')
+                  return cb(new Error('pubkeys do not match'))
+                }
                 var changeIndex = txp.changeAddress.path.split('/')[2]
                 $log.debug('changeIndex', changeIndex)
                 return bitlox.api.setChangeAddress(changeIndex).then(function() {
                   $log.debug('Done setting change address')
                   $ionicLoading.show({
-                    template: 'Signing Transactions. Check Your BitLox...'
+                    template: 'Signing Transaction. Check Your BitLox...'
                   });
                   return bitlox.api.signTransaction(tx)
                   .then(function(result) {
