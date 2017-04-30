@@ -56,7 +56,7 @@
               template: 'Importing BitLox Wallet...'
             });
             // console.warn("START IMPORTING")
-            profileService.createWallet(opts, function(err, walletId) {
+            profileService.importExtendedPublicKey(opts, function(err, walletId) {
               $ionicLoading.hide()
               // console.warn("DONE IMPORTING")
               if (err) {

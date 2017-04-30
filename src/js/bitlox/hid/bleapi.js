@@ -931,9 +931,10 @@ this.startScanNew = function() {
 }
 
 this.deviceFound = function(device, errorCode)  {
-  console.log(JSON.stringify(device.advertisementData))
-	// if (device && device.advertisementData.kCBAdvDataServiceUUIDs && device.advertisementData.kCBAdvDataServiceUUIDs.indexOf('0000fff0-0000-1000-8000-00805f9b34fb') > -1)
-	if (device){
+  // console.log(JSON.stringify(device.advertisementData))
+	if (device && device.advertisementData.kCBAdvDataServiceUUIDs
+    && device.advertisementData.kCBAdvDataServiceUUIDs.indexOf('0000fff0-0000-1000-8000-00805f9b34fb') > -1) {
+	// if (device){
 		// Set timestamp for device (this is used to remove
 		// inactive devices).
 		device.timeStamp = Date.now();

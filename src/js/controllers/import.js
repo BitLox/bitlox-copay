@@ -236,7 +236,7 @@ angular.module('copayApp.controllers').controller('importController',
       opts.account = pathData.account;
       opts.networkName = pathData.networkName;
       opts.derivationStrategy = pathData.derivationStrategy;
-      
+
       var words = $scope.formData.words || null;
 
       if (!words) {
