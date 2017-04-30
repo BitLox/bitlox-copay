@@ -25,7 +25,7 @@
           <div class="item item-divider"></div>
 
           <ion-toggle ng-model="vm.newWallet.isRestore" toggle-class="toggle-balanced">
-            <span class="toggle-label" translate>Restore From Pnemonic?</span>
+            <span class="toggle-label" translate>Restore From Mnemonic?</span>
           </ion-toggle>
 
           <div ng-show="vm.newWallet.isRestore">
@@ -47,7 +47,7 @@
               <div class="form-group">
                   <textarea class="form-control"
                             ng-model="userWords"
-                            placeholder="Enter your pnemonic here"
+                            placeholder="Enter your Mnemonic here"
                             ng-change="updateWordNumbers()"
                             ng-keyup="updateWordNumbers()"></textarea>
               </div>
