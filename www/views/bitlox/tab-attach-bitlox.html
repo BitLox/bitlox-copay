@@ -23,7 +23,7 @@
       </div>
       <div class="list card"  ng-show="bitlox.isMobile && !bitlox.connected">
         <a class="item item-remove-animate" ng-click="refreshBitlox($event)">
-          <span  ng-if="api.getNumDevices() < 1">No devices found - </span>Pull to refresh
+          <span  ng-if="api.getNumDevices() < 1">No devices found - </span>Tap here to refresh
         </a>
         <a ng-repeat="device in api.getKnownDevices()"
            ng-click="connectBle(device.address, false)"
@@ -46,7 +46,7 @@
             <i class="icon big-icon-svg">
               <img src="img/icon-wallet.svg" class="bg wallet icon-create-wallet"/>
             </i>
-            <span class="add-type" translate>Create/Restore BitLox Wallet</span>
+            <span class="add-type" translate>Create/Restore<br />BitLox Wallet</span>
             <i class="icon bp-arrow-right"></i>
           </a>
           <!-- <div class="item" ng-show="createToggle">

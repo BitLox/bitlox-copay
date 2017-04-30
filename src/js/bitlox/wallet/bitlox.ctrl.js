@@ -65,7 +65,7 @@
     }
     $scope.connectBle = function(address, goBack) {
       $ionicLoading.show({
-            template: 'Connecting to BitLox'
+            template: 'Connecting to BitLox, Please Wait...'
           });
       console.log('connecting to '+address)
       api.connect(address).then(function() {
@@ -73,7 +73,6 @@
           $ionicLoading.hide()
           if(api.getStatus() === api.STATUS_CONNECTED) {
             $log.debug("connection successful")
-            $ionicLoading.hide()
             if(goBack) {
               $rootScope.$broadcast('bitloxConnectSuccess')
             }
@@ -82,7 +81,7 @@
             $rootScope.$broadcast('bitloxConnectError')
             popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Connection Error. Try Again.");
           }
-        },3000)
+        },6000)
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
       }).finally(function() {
