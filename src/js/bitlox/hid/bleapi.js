@@ -877,6 +877,7 @@ this.startReading = function(def) {
           $rootScope.$applyAsync();
         });
       BleApi.displayStatus('Ready');
+      pausecomp(1000)
       status = BleApi.STATUS_CONNECTED
       $rootScope.$applyAsync()
       def.resolve()

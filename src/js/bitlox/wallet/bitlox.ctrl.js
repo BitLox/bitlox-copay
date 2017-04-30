@@ -67,17 +67,8 @@
           });
       console.log('connecting to '+address)
       api.connect(address).then(function() {
-        setTimeout(function() {
-          $ionicLoading.hide()
-          if(api.getStatus() !== api.STATUS_DISCONNECTED) {
-            $log.debug("connection successful")
-            $rootScope.$broadcast('bitloxConnectSuccess')
-          } else {
-            $log.debug("connection failed")
-            $rootScope.$broadcast('bitloxConnectError')
-            popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Connection Error. Try Again.");
-          }
-        },4000)
+        $ionicLoading.hide()
+        $rootScope.$broadcast('bitloxConnectSuccess')
       }, function(err) {
         $log.debug("BitLox Connection Error", err)
       }).finally(function() {
