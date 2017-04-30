@@ -15,12 +15,10 @@
     else if(platformInfo.isMobile) {
       api = bleapi
     }
-
     $scope.api = api;
     if(platformInfo.isMobile) {
       api.initialize();
     }
-
     $scope.bitlox = {
       isMobile: platformInfo.isMobile,
       connectAttempted: false,
@@ -97,9 +95,6 @@
     });
 
     $scope.$watch('api.getStatus()', function(hidstatus) {
-      checkStatus(hidstatus)
-    });
-    api.$scope && api.$scope.$watch('status', function(hidstatus) {
       checkStatus(hidstatus)
     });
 

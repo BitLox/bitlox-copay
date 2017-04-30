@@ -173,7 +173,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                       $log.debug('TX parse error', result)
                       return cb(new Error("TX parse error"))
                     }
-                  }).catch(function(err) {
+                  }, function(err) {
                     $log.debug("TX sign error", err)
                     return cb(err)
                   })
@@ -188,11 +188,11 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
         }
         return cb(new Error('This wallet is not on the connected BitLox device or has been moved. Select the correct Bitlox or contact support.'))
 
-      }).catch(function(e) {
+      }, function(e) {
         $log.debug('Bitlox wallet list error', e)
         return cb(e)
       })
-    }).catch(function(e) {
+    }, function(e) {
       $log.debug('cannot get device uuid', e)
       return cb(e)
     })

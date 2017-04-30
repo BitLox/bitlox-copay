@@ -72,6 +72,9 @@
 
         // dave says this comes from the import.js file by copay, with edits
         var _importExtendedPublicKey = function(wallet) {
+          $ionicLoading.show({
+            template: 'Importing BitLox wallet...'
+          });          
           api.getDeviceUUID().then(function(result) {
             var opts = {};
             opts.singleAddress = false
@@ -95,9 +98,7 @@
 
             opts.network = true
             opts.bwsurl = 'https://bws.bitpay.com/bws/api'
-            $ionicLoading.show({
-              template: 'Importing BitLox wallet...'
-            });
+
             // console.warn("START IMPORTING")
             profileService.createWallet(opts, function(err, walletId) {
               $ionicLoading.hide()
@@ -272,6 +273,25 @@
 
 
         reset();
+
+
+        $scope.$watch('api.getStatus()', function(hidstatus) {
+          checkStatus(hidstatus)
+          $scope.prevStatus = hidstatus;
+        });
+
+        function checkStatus(hidstatus) {
+          console.warn("New device status: " + hidstatus)
+          switch(hidstatus) {
+          case api.STATUS_DISCONNECTED:
+              if($scope.prevStatus && $scope.prevStatus !== api.STATUS_DISCONNECTED) {
+                $ionicLoading.hide();
+                popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Disconnected.");
+
+              }
+              break;
+          }
+        }
     }
 
 })(window, window.angular, window.chrome);
