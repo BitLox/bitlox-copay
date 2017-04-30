@@ -723,6 +723,8 @@ this.initialize = function() {
       // if we've already initialized don't do it again
       if(bleReady) {
         console.log("ALREADY INITIALIZED, STOPPING")
+        status = BleApi.STATUS_CONNECTED
+        $rootScope.$applyAsync()        
         return true;
       }
       platform = window.device.platform.toLowerCase()

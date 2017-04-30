@@ -167,7 +167,8 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                       $ionicLoading.show({
                         template: 'Broadcasting Transaction. Please Wait...'
                       });
-                      return root.removeTx(wallet, txp, function() {
+
+                      // return root.removeTx(wallet, txp, function() {
                         // comment out thes 5 lines and send `return cb(null,txp) to skip broadcast`
                         return txUtil.submit(tx.signedHex).then(function() {
                           return cb(null, txp)
@@ -175,7 +176,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
                           return cb(err)
                         })
                         // return cb(null,txp)
-                      })
+                      // })
                     } else {
                       $log.debug('TX parse error', result)
                       return cb(new Error("TX parse error"))
@@ -1152,12 +1153,7 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
           $ionicLoading.hide()
           ongoingProcess.set('signingTx', false, customStatusHandler);
-          if (wallet.isPrivKeyExternal()) {
-            var externalSource = wallet.getPrivKeyExternalSourceName()
-            if(externalSource.indexOf('bitlox') === 0) {
-              ongoingProcess.set('broadcastingTx', false, customStatusHandler); // just tells the UI we are done
-            }
-          }
+
           root.invalidateCache(wallet);
 
 
@@ -1169,6 +1165,20 @@ angular.module('copayApp.services').factory('walletService', function($rootScope
 
             $rootScope.$emit('Local/TxAction', wallet.id);
             return cb(msg);
+          }
+
+          if (wallet.isPrivKeyExternal()) {
+            var externalSource = wallet.getPrivKeyExternalSourceName()
+            if(externalSource.indexOf('bitlox') === 0) {
+              ongoingProcess.set('broadcastingTx', true, customStatusHandler);
+              return root.broadcastTx(wallet, signedTxp, function(err, broadcastedTxp) {
+                ongoingProcess.set('broadcastingTx', false, customStatusHandler);
+                if (err) return cb(bwcError.msg(err));
+
+                $rootScope.$emit('Local/TxAction', wallet.id);
+                return cb(null, broadcastedTxp);
+              });
+            }
           }
 
           if (signedTxp.status == 'accepted') {

@@ -284,7 +284,7 @@
           console.warn("New device status: " + hidstatus)
           switch(hidstatus) {
           case api.STATUS_DISCONNECTED:
-              if($scope.prevStatus && $scope.prevStatus !== api.STATUS_DISCONNECTED) {
+              if(!platformInfo.isIOS && $scope.prevStatus && $scope.prevStatus !== api.STATUS_DISCONNECTED) {
                 $ionicLoading.hide();
                 popupService.showAlert(gettextCatalog.getString('Error'), "BitLox Disconnected.");
 
