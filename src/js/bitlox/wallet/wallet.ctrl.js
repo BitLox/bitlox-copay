@@ -99,12 +99,26 @@
               template: 'Importing BitLox wallet...'
             });
             // console.warn("START IMPORTING")
-            profileService.importExtendedPublicKey(opts, function(err, walletId) {
+            profileService.createWallet(opts, function(err, walletId) {
               $ionicLoading.hide()
               // console.warn("DONE IMPORTING")
               if (err) {
                 console.error(err)
-                popupService.showAlert(gettextCatalog.getString('Error'), err);
+
+                profileService.importExtendedPublicKey(opts, function(err, walletId) {
+                  $ionicLoading.hide()
+                  // console.warn("DONE IMPORTING")
+                  if (err) {
+                    console.error(err2)
+                    popupService.showAlert(gettextCatalog.getString('Error'), err2);
+                    return;
+                  }
+
+
+                  walletService.updateRemotePreferences(walletId);
+                  $ionicHistory.goBack(-3);
+
+                });
                 return;
               }
 
@@ -151,7 +165,7 @@
 
           $ionicPopup.confirm({
             title: "Link BitLox Wallet #"+wallet.number,
-            subTitle: "Are you sure you want to link '"+ wallet.name +"'?",
+            subTitle: "Are you sure you want to link this wallet?\n\n'"+ wallet.name +"'",
             cancelText: "Cancel",
             cancelType: 'button-clear button-positive',
             okText: "Yes, Import",
@@ -247,7 +261,9 @@
             vm.openWallet = null;
             // read after a timeout, so angular does not hang and show
             // garbage while the browser is locked form readin the device
-            $timeout(vm.readWallets.bind(vm), 100);
+            if(!platformInfo.isMobile) {
+              $timeout(vm.readWallets.bind(vm), 100);
+            }
         }
 
 
